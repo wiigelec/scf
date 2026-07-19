@@ -28,6 +28,9 @@ Future work is governed through GitHub issues, isolated working branches, pull
 requests, review, and merge to `main` under the rules recorded in
 `bootstrap/INITIAL-DEVELOPMENT-PROCESS.md`.
 
+The bounded-work planning convention is documented in
+[`docs/GOVERNED-ISSUE-PLANNING.md`](docs/GOVERNED-ISSUE-PLANNING.md).
+
 ## Repository validation
 
 Run the initial read-only repository content validator from the repository root:
