@@ -40,9 +40,11 @@ class ValidationGateModeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not accept --check"):
             resolve_mode("complete", ["SCF-JSON-001"])
 
-    def test_certify_is_reserved_for_patch_two(self) -> None:
-        with self.assertRaisesRegex(ValueError, "reserved"):
-            resolve_mode("certify", None)
+    def test_explicit_certify_resolves_certification_mode(self) -> None:
+        self.assertEqual(
+            ValidationMode.CERTIFY,
+            resolve_mode("certify", None),
+        )
 
     def test_run_result_aggregates_ordered_check_results(self) -> None:
         run = ValidationRun(

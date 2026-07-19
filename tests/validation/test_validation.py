@@ -374,7 +374,13 @@ class ValidationTests(unittest.TestCase):
 
     def test_internal_failure_returns_two_without_traceback(self) -> None:
         broken = Check("SCF-TEST-001", "broken", lambda context: (_ for _ in ()).throw(RuntimeError("boom")))
-        with mock.patch("scf_validation.cli.REGISTERED_CHECKS", (broken,)):
+        with (
+            mock.patch("scf_validation.cli.REGISTERED_CHECKS", (broken,)),
+            mock.patch(
+                "scf_validation.cli.REQUIRED_CHECK_IDS",
+                ("SCF-TEST-001",),
+            ),
+        ):
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 status = main(self.repo.root, [])
