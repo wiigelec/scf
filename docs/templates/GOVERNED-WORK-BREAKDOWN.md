@@ -18,9 +18,9 @@ implementation if the structure changes materially.
 
 ## Work breakdown
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Patch boundaries
 
@@ -32,15 +32,15 @@ Describe the independently reviewable outcome.
 
 **Expected files**
 
-- 
+-
 
 **Mechanical validation**
 
-- 
+-
 
 **Semantic review**
 
-- 
+-
 
 **Commit subject**
 
@@ -54,15 +54,15 @@ Describe the independently reviewable outcome.
 
 **Expected files**
 
-- 
+-
 
 **Mechanical validation**
 
-- 
+-
 
 **Semantic review**
 
-- 
+-
 
 **Commit subject**
 

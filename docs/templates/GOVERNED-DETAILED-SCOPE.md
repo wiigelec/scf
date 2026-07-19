@@ -18,15 +18,15 @@ Describe precisely what this work will establish or change.
 
 ## Required behavior
 
-- 
-- 
-- 
+-
+-
+-
 
 ## Expected repository areas
 
-- 
-- 
-- 
+-
+-
+-
 
 ## Semantic decisions
 
@@ -35,9 +35,9 @@ or interpretation.
 
 ## Explicit non-goals
 
-- 
-- 
-- 
+-
+-
+-
 
 ## Dependency interpretation
 
