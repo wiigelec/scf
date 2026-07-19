@@ -33,13 +33,20 @@ The bounded-work planning convention is documented in
 
 ## Repository validation
 
-Run the initial read-only repository content validator from the repository root:
+Run the read-only development validation gate from the repository root:
 
 ```sh
 ./scripts/validate
 ```
 
-The validator checks current tracked JSON, authority checksums and metadata,
-declared semantic paths, and required bootstrap artifacts. See
-[`docs/VALIDATION.md`](docs/VALIDATION.md) for scope, exit statuses, check
-selection, and contributor guidance.
+The default complete-work mode validates the full resulting repository state.
+Focused checks and clean-revision certification use the same entrypoint:
+
+```sh
+./scripts/validate --check SCF-JSON-001
+./scripts/validate --mode certify
+```
+
+See [`docs/VALIDATION.md`](docs/VALIDATION.md) for mode semantics, machine
+output, exit statuses, registry integrity, and the boundaries between
+validation, diff review, CI evidence, and acceptance.
