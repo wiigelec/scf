@@ -1,5 +1,21 @@
 # Initial Development Process
 
+## Historical status and supersession
+
+This document records the provisional bootstrap-era development process that
+governed repository work before the official process was accepted.
+
+It is retained as historical evidence of the bootstrap-to-development
+transition. It is prospectively superseded by
+`docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md` upon that process's acceptance
+and merge to `main`.
+
+This supersession does not erase this document's historical role, retroactively
+invalidate work properly governed by it, or preserve its bootstrap exception as
+continuing authority. New governed work uses the official process. Work already
+in progress continues under the process authoritative when it began unless an
+explicit governed decision migrates it.
+
 ## Purpose
 
 This provisional process governs development after repository bootstrap and

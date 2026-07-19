@@ -24,6 +24,7 @@ REQUIRED_ARTIFACTS = (
     "bootstrap/README.md",
     ".github/ISSUE_TEMPLATE/governed-work.md",
     "docs/GOVERNED-ISSUE-PLANNING.md",
+    "docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md",
     "docs/templates/GOVERNED-DETAILED-SCOPE.md",
     "docs/templates/GOVERNED-WORK-BREAKDOWN.md",
     "planning/README.md",

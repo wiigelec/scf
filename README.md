@@ -24,12 +24,17 @@ Run `./scripts/validate` from the repository root and see
 
 ## Development process
 
-Future work is governed through GitHub issues, isolated working branches, pull
-requests, review, and merge to `main` under the rules recorded in
-`bootstrap/INITIAL-DEVELOPMENT-PROCESS.md`.
+Governed repository work follows the
+[official governed development process](docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md).
+It defines authority discovery, bounded authorization, planning, implementation,
+validation, review, correction, acceptance, merge, closure, and successor-work
+boundaries.
 
-The bounded-work planning convention is documented in
+The three-record bounded-work planning convention is documented in
 [`docs/GOVERNED-ISSUE-PLANNING.md`](docs/GOVERNED-ISSUE-PLANNING.md).
+
+`bootstrap/INITIAL-DEVELOPMENT-PROCESS.md` is retained as historical bootstrap
+evidence and is prospectively superseded by the official process.
 
 ## Repository validation
 
