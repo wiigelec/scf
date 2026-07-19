@@ -2,18 +2,21 @@
 
 ## Status and authority boundary
 
-This document defines the current lightweight convention for planning bounded
-Session Continuity Framework development work through GitHub Issues.
+This document defines the lightweight three-record convention for planning
+bounded Session Continuity Framework development work through GitHub Issues.
 
-It is a development-planning document. It is not normative SCF authority and
-does not replace, supersede, or reinterpret the accepted authority hierarchy.
+It is a development-planning document used within the official governed
+development process. It is not normative SCF authority and does not replace,
+supersede, or reinterpret the accepted authority hierarchy or the official
+process.
 
 The convention is governed by:
 
 - the high-level scope recorded in the governing GitHub Issue;
 - the detailed scope recorded in one designated issue comment;
 - the work breakdown and patch plan recorded in one designated issue comment;
-- the development process authoritative when the work begins.
+- the official governed development process, or the earlier process that remains
+  authoritative for already-open work under explicit transition rules.
 
 GitHub Issues are the primary durable planning mechanism. Repository files
 document the convention and provide reusable templates; they do not duplicate
@@ -147,9 +150,9 @@ The planning convention keeps these facts distinct:
 - merge state;
 - closure state.
 
-Issue #10 may later establish the official process and vocabulary governing
-these facts. This document records only the minimum distinctions needed to
-avoid conflation during current foundation development.
+The official governed development process defines the lifecycle vocabulary and
+rules governing these facts. This planning convention preserves those
+distinctions and supplies the designated issue records used within that process.
 
 ## Identifying and revising the designated comments
 
@@ -211,18 +214,18 @@ Not every work item requires every evidence type, but omissions must be
 justified by the work's actual boundary. Issue state alone is never sufficient
 completion evidence.
 
-## Boundary with later foundation work
+## Boundary with the official process and repository mechanisms
 
 This convention intentionally does not define:
 
 - repository-local planning schemas or registries;
 - a custom lifecycle engine;
-- the final development validation gate;
+- the repository validation gate;
 - continuous-integration enforcement;
-- the complete official development process;
-- bootstrap completion;
-- successor-work authorization.
+- the official governed development process;
+- acceptance, closure, or successor-work authorization.
 
-Issue #8 may build the complete validation gate around the bounded-work
-convention. Issue #10 may establish the official governed development process.
-This document must not preempt either issue.
+Those responsibilities belong to their accepted repository mechanisms and the
+official governed development process. This document supplies the issue-based
+planning records used within that process and must not duplicate live issue,
+pull-request, commit, validation, or CI state.
