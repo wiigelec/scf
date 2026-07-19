@@ -1,13 +1,47 @@
 {
+  "document": {
+    "id": "SCF-CORE",
+    "title": "SCF Bootstrap Foundational Authority",
+    "authority_role": "bootstrap foundational authority",
+    "authority_scope": "Defines the initial generic SCF architecture, authority model, construction constraints, and minimum conformance rules from which later governed specifications may be developed.",
+    "field_semantics": {
+      "descriptive_metadata": [
+        "document.id",
+        "document.title",
+        "scf.name",
+        "scf.abbreviation",
+        "scf.version",
+        "scf.status",
+        "scf.purpose",
+        "scf.contract_foundation.name",
+        "scf.contract_foundation.role"
+      ],
+      "normative_authority": [
+        "document.authority_role",
+        "document.authority_scope",
+        "document.field_semantics",
+        "architecture",
+        "authority_model",
+        "mutation_model",
+        "context_model",
+        "specification_model",
+        "construction_model",
+        "foundation_model",
+        "controlled_vocabulary",
+        "conformance_minimum"
+      ],
+      "interpretation": "Descriptive metadata identifies and explains the document but does not independently impose conformance requirements. Normative authority defines required architecture, behavior, constraints, vocabulary, or conformance."
+    }
+  },
   "scf": {
     "name": "Session Continuity Framework",
     "abbreviation": "SCF",
-    "version": "1.0.0-proposed-core",
+    "version": "1.0.1-proposed-core",
     "status": "proposed",
     "purpose": "Define self-contained, model-assisted applications that preserve durable authority across transient sessions while limiting drift, hallucination, uncontrolled inference, and direct mutation of authoritative state.",
-    "contract_foundations": {
-      "name": "SCF Contract Foundations",
-      "role": "Nested foundational specification set defining the generic architecture, authority model, construction constraints, and minimum conformance rules for Session Continuity Framework applications."
+    "contract_foundation": {
+      "name": "SCF Contract Foundation",
+      "role": "Nested foundational specification defining the generic architecture, authority model, construction constraints, and minimum conformance rules for Session Continuity Framework applications."
     }
   },
   "architecture": {

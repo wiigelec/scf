@@ -8,9 +8,9 @@ before a more specific approved process supersedes it.
 ## Authority hierarchy
 
 1. The **Session Continuity Framework (SCF)** is the overall framework.
-2. **SCF Contract Foundations** is its nested foundational specification set.
-3. `authority/core/SCF-CORE.json` is the Level-0 root authority for governed
-   development.
+2. **SCF Contract Foundation** is its nested foundational specification.
+3. `authority/core/SCF-CORE.json` is the bootstrap foundational authority for
+   governed development.
 4. Lower-level artifacts may refine that authority but may not silently
    contradict, rename, or replace it.
 
