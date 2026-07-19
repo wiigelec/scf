@@ -9,19 +9,18 @@ SCF applications are developed.
 
 ## Repository state
 
-This repository is at bootstrap. It contains foundational authority and the
-minimum process needed to begin governed top-down design. It contains no
-product implementation, runtime architecture, speculative lower-level schema,
-or continuous-integration system.
+This repository is in governed post-bootstrap foundation development. It now
+contains a proposed durable Level 0 authority and local repository validation,
+but the bootstrap-to-development transition is not complete.
 
 ## Authority
 
-`authority/core/SCF-CORE.json` is the bootstrap foundational authority.
-Its integrity can be checked from the repository root with:
+`authority/level-0/SCF-LEVEL-0.json` is the proposed durable Level 0 root.
+It is derived from `authority/core/SCF-CORE.json`, which remains historical
+bootstrap foundational authority and is not the permanent Level 0 artifact.
 
-```sh
-sha256sum -c authority/core/SCF-CORE.sha256
-```
+Run `./scripts/validate` from the repository root and see
+[`authority/README.md`](authority/README.md) for the hierarchy.
 
 ## Development process
 

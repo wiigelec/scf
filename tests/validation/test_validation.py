@@ -112,6 +112,14 @@ class RepositoryFixture:
             "expires_after": "creation of the SCF bootstrap commit",
         }
         self.refresh_authority()
+        level0_source = REPOSITORY_ROOT / "authority/level-0"
+        for name in ("SCF-LEVEL-0.json", "SCF-LEVEL-0.sha256", "manifest.json", "README.md"):
+            source = level0_source / name
+            if source.is_file():
+                self.write(f"authority/level-0/{name}", source.read_bytes())
+        authority_readme = REPOSITORY_ROOT / "authority/README.md"
+        if authority_readme.is_file():
+            self.write("authority/README.md", authority_readme.read_bytes())
         self.write_json("bootstrap/BOOTSTRAP-SCOPE.json", self.bootstrap)
         self.track_all()
 

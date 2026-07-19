@@ -1,0 +1,82 @@
+{
+  "document": {
+    "id": "SCF-LEVEL-0",
+    "title": "SCF Level 0 Authority",
+    "authority_role": "durable Level 0 root authority",
+    "authority_scope": "Defines the smallest indivisible architecture invariant set that constrains every lower-level Session Continuity Framework specification and conforming implementation.",
+    "field_semantics": {
+      "descriptive_metadata": [
+        "document.id",
+        "document.title",
+        "scf.name",
+        "scf.abbreviation",
+        "scf.contract_foundation",
+        "scf.version",
+        "scf.status",
+        "provenance.source_document",
+        "provenance.source_document_id",
+        "provenance.relationship",
+        "provenance.preservation"
+      ],
+      "normative_authority": [
+        "document.authority_role",
+        "document.authority_scope",
+        "document.field_semantics",
+        "architecture_invariants",
+        "specification_hierarchy"
+      ],
+      "interpretation": "Descriptive metadata identifies the authority and records provenance without independently imposing conformance requirements. Normative authority defines the Level 0 invariants and hierarchy constraints that all lower levels and implementations must obey."
+    }
+  },
+  "scf": {
+    "name": "Session Continuity Framework",
+    "abbreviation": "SCF",
+    "contract_foundation": "SCF Contract Foundation",
+    "version": "1.0.0",
+    "status": "proposed"
+  },
+  "provenance": {
+    "source_document": "authority/core/SCF-CORE.json",
+    "source_document_id": "SCF-CORE",
+    "relationship": "derived-from-bootstrap-foundational-authority",
+    "preservation": "The source document remains preserved as historical bootstrap foundational authority and is not the permanent Level 0 artifact."
+  },
+  "architecture_invariants": [
+    {
+      "id": "SCF-L0-ARCH-001",
+      "statement": "A Session Continuity Framework application separates the ruleset, dataset, and chatbot responsibilities."
+    },
+    {
+      "id": "SCF-L0-AUTH-001",
+      "statement": "The dataset is the sole authority for committed application information, while the ruleset governs behavior and data-model meaning."
+    },
+    {
+      "id": "SCF-L0-TRANSIENT-001",
+      "statement": "The chatbot and all model or conversation state are transient and must never substitute for committed authority."
+    },
+    {
+      "id": "SCF-L0-MUT-001",
+      "statement": "Authoritative mutation requires an explicit structured payload, required review or approval, and a controlled commit mechanism that does not invent semantics."
+    },
+    {
+      "id": "SCF-L0-CTX-001",
+      "statement": "Model context is bounded to the active task and traceable to the higher-level authority that constrains it."
+    },
+    {
+      "id": "SCF-L0-HIER-001",
+      "statement": "Lower-level specifications and implementations may refine Level 0 authority but must not contradict, override, silently replace, or rename it."
+    },
+    {
+      "id": "SCF-L0-UNDER-001",
+      "statement": "Missing required authority makes work underspecified and is not permission to infer architecture or committed state."
+    }
+  ],
+  "specification_hierarchy": {
+    "level": 0,
+    "normative_parent": null,
+    "lower_level_parent_rule": "Every lower normative specification has exactly one declared normative parent in the accepted authority hierarchy.",
+    "refinement_rule": "Level 1 and Level 2 specifications may add detail only within the constraints established by higher authority.",
+    "implementation_rule": "Implementation is non-normative unless authority is explicitly delegated and must conform to all applicable accepted specifications.",
+    "scope_boundary": "Level 0 defines architecture invariants only; it does not define product-specific runtime architecture, component interfaces, schemas, or application data."
+  }
+}

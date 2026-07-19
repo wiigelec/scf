@@ -41,6 +41,7 @@ Run one or more registered checks:
 ```sh
 ./scripts/validate --check SCF-JSON-001
 ./scripts/validate --check SCF-JSON-001 --check SCF-MANIFEST-001
+./scripts/validate --check SCF-LEVEL0-001
 ```
 
 This selection interface is developer feedback only. It is not the governed
@@ -55,7 +56,9 @@ The validator checks:
 
 - tracked JSON UTF-8, syntax, and duplicate keys;
 - the current canonical checksum record;
-- current manifest structure, identity, metadata, path, and digest consistency;
+- bootstrap manifest structure, identity, metadata, path, and digest consistency;
+- durable Level 0 identity, provenance, hierarchy, semantic paths, manifest,
+  checksum, canonical path, and digest consistency;
 - declared descriptive and normative semantic paths and their disjointness;
 - current required repository artifacts and narrow historical bootstrap-record
   consistency.

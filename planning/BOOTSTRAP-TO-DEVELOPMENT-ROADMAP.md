@@ -66,8 +66,8 @@ GitHub issue state and accepted repository evidence remain authoritative.
 
 | Capability | Issue | Initial state | Strict predecessors |
 |---|---:|---|---|
-| Repository validation foundation | #4 | Open | None |
-| Initial durable Level 0 authority | #5 | Open | #4 |
+| Repository validation foundation | #4 | Complete | None |
+| Initial durable Level 0 authority | #5 | In progress | #4 |
 | Governed planning and bounded work records | #7 | Open | #4 |
 | Repository development validation gate | #8 | Open | #7 |
 | Continuous-integration enforcement | #9 | Open | #8 |
