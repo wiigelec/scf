@@ -39,6 +39,7 @@ class RepositoryFixture:
         for relative in (
             ".github/ISSUE_TEMPLATE/governed-work.md",
             "docs/GOVERNED-ISSUE-PLANNING.md",
+            "docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md",
             "docs/templates/GOVERNED-DETAILED-SCOPE.md",
             "docs/templates/GOVERNED-WORK-BREAKDOWN.md",
         ):
@@ -301,10 +302,11 @@ class ValidationTests(unittest.TestCase):
         (self.repo.root / "VERSION").unlink()
         self.assertIn("SCF-REPO-MISSING", self.ids(check_repository(self.repo.context())))
 
-    def test_missing_governed_planning_artifacts_fail(self) -> None:
+    def test_missing_governed_process_and_planning_artifacts_fail(self) -> None:
         required = (
             ".github/ISSUE_TEMPLATE/governed-work.md",
             "docs/GOVERNED-ISSUE-PLANNING.md",
+            "docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md",
             "docs/templates/GOVERNED-DETAILED-SCOPE.md",
             "docs/templates/GOVERNED-WORK-BREAKDOWN.md",
         )
