@@ -16,22 +16,44 @@ before a more specific approved process supersedes it.
 
 ## Development flow
 
-1. Create and approve a high-level SCF product design scope.
-2. Integrate that scope into `main`.
-3. Decompose the approved scope into milestones.
-4. Decompose each milestone into phases.
-5. Decompose each phase into bounded batches.
-6. Implement each batch through a reviewable, reproducible patch.
+1. Create a GitHub issue defining the high-level work scope, governing
+   constraints, and acceptance criteria.
+2. Create a working branch from `main` associated with that issue.
+3. Perform the work entirely within the working branch.
+4. Open a pull request linking the proposed changes to the governing issue.
+5. Review the pull request against the issue scope and applicable repository
+   authority.
+6. Merge the pull request into `main` only after it is accepted.
+
+## Authority boundaries
+
+GitHub issues define approved high-level work scope but do not themselves
+modify repository authority.
+
+Working branches are provisional implementation domains. Development methods,
+planning structures, commits, temporary artifacts, and other branch-local
+processes remain implementation concerns unless separately accepted as
+repository authority.
+
+Pull requests are proposed authority transitions.
+
+Only reviewed and accepted changes merged into `main` become authoritative
+repository state.
 
 ## Constraints
 
-Do not introduce implementation, runtime architecture, speculative schemas,
-CI, milestones, phases, or batches during bootstrap. Every later artifact must
-identify its governing authority and remain within its approved scope.
+Every pull request must identify its governing issue, remain within the
+approved high-level scope, and demonstrate satisfaction of the applicable
+acceptance criteria.
+
+Work that materially exceeds or changes the governing issue scope requires the
+issue to be revised or a new issue to be created before that work is merged.
 
 ## Bootstrap exception
 
-The existing root commit is a repository seed containing only the MIT license
-and placeholder README. The SCF bootstrap commit is a one-time exception to the
-milestone/phase/batch hierarchy because that hierarchy does not yet exist. The
-exception expires when the bootstrap commit is created.
+This change is the final bootstrap exception. It establishes the issue-based
+development process used for all subsequent repository changes.
+
+After this change is merged, every repository modification shall originate
+from a GitHub issue and proceed through an isolated working branch and pull
+request before entering `main`.
