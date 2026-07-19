@@ -28,3 +28,16 @@ sha256sum -c authority/core/SCF-CORE.sha256
 Future work is governed through GitHub issues, isolated working branches, pull
 requests, review, and merge to `main` under the rules recorded in
 `bootstrap/INITIAL-DEVELOPMENT-PROCESS.md`.
+
+## Repository validation
+
+Run the initial read-only repository content validator from the repository root:
+
+```sh
+./scripts/validate
+```
+
+The validator checks current tracked JSON, authority checksums and metadata,
+declared semantic paths, and required bootstrap artifacts. See
+[`docs/VALIDATION.md`](docs/VALIDATION.md) for scope, exit statuses, check
+selection, and contributor guidance.

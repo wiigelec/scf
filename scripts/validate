@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""Run SCF repository content validation from the repository root."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+ROOT = Path.cwd()
+PACKAGE_ROOT = ROOT / "src"
+REQUIRED_SENTINELS = (
+    ROOT / ".git",
+    ROOT / "authority/core/SCF-CORE.json",
+    ROOT / "bootstrap/INITIAL-DEVELOPMENT-PROCESS.md",
+    ROOT / "planning/BOOTSTRAP-TO-DEVELOPMENT-ROADMAP.md",
+)
+
+missing = [item.relative_to(ROOT).as_posix() for item in REQUIRED_SENTINELS if not item.exists()]
+if missing:
+    print(
+        "Validation invocation failed: current directory is not the SCF "
+        "repository root; missing: " + ", ".join(missing)
+    )
+    raise SystemExit(2)
+
+sys.path.insert(0, str(PACKAGE_ROOT))
+
+from scf_validation.cli import main  # noqa: E402
+
+raise SystemExit(main(ROOT))
