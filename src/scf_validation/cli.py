@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 import argparse
+import json
 import traceback
 from pathlib import Path
 from typing import Sequence
 
-from .checks import REGISTERED_CHECKS
+from .checks import REGISTERED_CHECKS, REQUIRED_CHECK_IDS
 from .context import ContextError, ValidationContext
-from .diagnostics import Diagnostic, Severity
-from .registry import Check
+from .gate import (
+    ValidationMode,
+    ValidationRun,
+    build_run,
+    certification_diagnostics,
+    inspect_repository_state,
+    resolve_mode,
+)
+from .registry import Check, validate_registry
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,11 +32,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="list registered checks and exit",
     )
     parser.add_argument(
+        "--mode",
+        choices=tuple(item.value for item in ValidationMode),
+        help=(
+            "validation mode: focused requires --check; complete runs the full "
+            "registry; certify runs the full registry against a clean revision"
+        ),
+    )
+    parser.add_argument(
         "--check",
         action="append",
         dest="check_ids",
         metavar="CHECK_ID",
         help="run only the named registered check; may be repeated",
+    )
+    parser.add_argument(
+        "--format",
+        choices=("human", "json"),
+        default="human",
+        help="result format; default: human",
     )
     parser.add_argument(
         "--debug",
@@ -38,45 +60,91 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def select_checks(check_ids: Sequence[str] | None) -> tuple[Check, ...]:
-    if not check_ids:
-        return REGISTERED_CHECKS
-    by_id = {check.check_id: check for check in REGISTERED_CHECKS}
-    unknown = sorted(set(check_ids) - set(by_id))
+def select_checks(
+    mode: ValidationMode,
+    check_ids: Sequence[str] | None,
+    registry: Sequence[Check],
+) -> tuple[Check, ...]:
+    if mode in (ValidationMode.COMPLETE, ValidationMode.CERTIFY):
+        return tuple(registry)
+
+    by_id = {check.check_id: check for check in registry}
+    unknown = sorted(set(check_ids or ()) - set(by_id))
     if unknown:
         raise ValueError("unknown check identifier(s): " + ", ".join(unknown))
-    requested = set(check_ids)
-    return tuple(check for check in REGISTERED_CHECKS if check.check_id in requested)
+    requested = set(check_ids or ())
+    return tuple(check for check in registry if check.check_id in requested)
 
 
-def run_checks(context: ValidationContext, checks: Sequence[Check]) -> tuple[int, int]:
-    errors = 0
-    warnings = 0
-    for check in checks:
-        diagnostics = check.function(context)
-        check_errors = [d for d in diagnostics if d.severity == Severity.ERROR]
-        status = "FAIL" if check_errors else "PASS"
-        print(f"{status} {check.check_id} {check.name}")
-        for diagnostic in diagnostics:
+def execute_checks(
+    context: ValidationContext,
+    mode: ValidationMode,
+    checks: Sequence[Check],
+) -> ValidationRun:
+    repository = inspect_repository_state(context.root)
+    preconditions = (
+        certification_diagnostics(repository)
+        if mode == ValidationMode.CERTIFY
+        else ()
+    )
+    if preconditions:
+        return build_run(mode, repository, (), (), preconditions)
+    diagnostics = tuple(check.function(context) for check in checks)
+    return build_run(mode, repository, checks, diagnostics)
+
+
+def render_human(run: ValidationRun) -> None:
+    for diagnostic in run.diagnostics:
+        print(diagnostic.render())
+    for result in run.checks:
+        status = "PASS" if result.passed else "FAIL"
+        print(f"{status} {result.check_id} {result.name}")
+        for diagnostic in result.diagnostics:
             print(diagnostic.render())
-            if diagnostic.severity == Severity.ERROR:
-                errors += 1
-            else:
-                warnings += 1
-    return errors, warnings
+    if run.mode == ValidationMode.CERTIFY and run.passed:
+        print(f"CERTIFIED {run.repository.revision}")
+
+
+def render_json(run: ValidationRun) -> None:
+    print(json.dumps(run.as_dict(), sort_keys=True, separators=(",", ":")))
+
+
+def render_check_list(registry: Sequence[Check], output_format: str) -> None:
+    if output_format == "json":
+        payload = {
+            "schema_version": 1,
+            "checks": [
+                {"id": check.check_id, "name": check.name}
+                for check in registry
+            ],
+        }
+        print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+        return
+    for check in registry:
+        print(f"{check.check_id} {check.name}")
 
 
 def main(root: Path, argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     try:
         args = parser.parse_args(argv)
+        registry = validate_registry(REGISTERED_CHECKS, REQUIRED_CHECK_IDS)
         if args.list_checks:
-            for check in REGISTERED_CHECKS:
-                print(f"{check.check_id} {check.name}")
+            if args.mode or args.check_ids:
+                raise ValueError(
+                    "--list-checks cannot be combined with --mode or --check"
+                )
+            render_check_list(registry, args.format)
             return 0
-        checks = select_checks(args.check_ids)
+
+        mode = resolve_mode(args.mode, args.check_ids)
+        checks = select_checks(mode, args.check_ids, registry)
         context = ValidationContext.create(root)
-        errors, warnings = run_checks(context, checks)
+        run = execute_checks(context, mode, checks)
+        if args.format == "json":
+            render_json(run)
+        else:
+            render_human(run)
     except (ContextError, ValueError) as exc:
         print(f"Validation invocation failed: {exc}")
         return 2
@@ -86,8 +154,16 @@ def main(root: Path, argv: Sequence[str] | None = None) -> int:
             traceback.print_exc()
         return 2
 
-    if errors:
-        print(f"Validation failed: {errors} error(s), {warnings} warning(s)")
+    if run.errors:
+        if args.format == "human":
+            print(
+                f"Validation failed: {run.errors} error(s), "
+                f"{run.warnings} warning(s)"
+            )
         return 1
-    print(f"Validation passed: {errors} error(s), {warnings} warning(s)")
+    if args.format == "human":
+        print(
+            f"Validation passed: {run.errors} error(s), "
+            f"{run.warnings} warning(s)"
+        )
     return 0

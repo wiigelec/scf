@@ -10,6 +10,15 @@ from .manifests import check_manifest
 from .repository import check_repository
 from .semantic_paths import check_semantic_paths
 
+REQUIRED_CHECK_IDS = (
+    "SCF-JSON-001",
+    "SCF-CHECKSUM-001",
+    "SCF-MANIFEST-001",
+    "SCF-SEMANTIC-001",
+    "SCF-LEVEL0-001",
+    "SCF-REPO-001",
+)
+
 REGISTERED_CHECKS = (
     Check("SCF-JSON-001", "tracked JSON integrity", check_json_files),
     Check("SCF-CHECKSUM-001", "canonical checksum", check_checksum),
