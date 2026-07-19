@@ -1,0 +1,13 @@
+{
+  "document_id": "SCF-CONTRACT-FOUNDATIONS-CORE",
+  "title": "SCF Contract Foundations Core",
+  "framework": {
+    "name": "Session Continuity Framework",
+    "abbreviation": "SCF"
+  },
+  "foundation_set": "SCF Contract Foundations",
+  "version": "1.0.0-proposed-core",
+  "status": "proposed",
+  "canonical_path": "authority/core/SCF-CORE.json",
+  "sha256": "b0abebd3a412bac15fae8175cc2c04e82787d495058a32f08df02ff6ec985ef3"
+}

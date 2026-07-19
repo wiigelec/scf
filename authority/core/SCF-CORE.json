@@ -1,0 +1,255 @@
+{
+  "scf": {
+    "name": "Session Continuity Framework",
+    "abbreviation": "SCF",
+    "version": "1.0.0-proposed-core",
+    "status": "proposed",
+    "purpose": "Define self-contained, model-assisted applications that preserve durable authority across transient sessions while limiting drift, hallucination, uncontrolled inference, and direct mutation of authoritative state.",
+    "contract_foundations": {
+      "name": "SCF Contract Foundations",
+      "role": "Nested foundational specification set defining the generic architecture, authority model, construction constraints, and minimum conformance rules for Session Continuity Framework applications."
+    }
+  },
+  "architecture": {
+    "primary_components": [
+      "ruleset",
+      "dataset",
+      "chatbot"
+    ],
+    "components": {
+      "ruleset": {
+        "role": "Stable behavioral and data-model authority.",
+        "owns": [
+          "workflows",
+          "schemas and data models",
+          "validation and approval requirements",
+          "retrieval policy",
+          "mutation policy",
+          "legal authority transitions",
+          "connector permissions",
+          "application maintenance semantics"
+        ],
+        "must_not": [
+          "own committed application information",
+          "directly mutate authoritative artifacts"
+        ]
+      },
+      "dataset": {
+        "role": "Sole authority for committed application information state.",
+        "owns": [
+          "committed application information",
+          "revision and transaction state",
+          "controlled read surfaces",
+          "controlled mutation surfaces"
+        ],
+        "must_not": [
+          "infer unresolved domain semantics",
+          "treat transient chatbot state as committed state"
+        ]
+      },
+      "chatbot": {
+        "role": "Transient, ruleset-governed semantic executor.",
+        "owns": [
+          "intent interpretation",
+          "bounded context use",
+          "transient session working state",
+          "semantic reconciliation",
+          "structured payload construction",
+          "user-facing result reporting"
+        ],
+        "must_not": [
+          "own committed application state",
+          "directly mutate authoritative artifacts",
+          "represent unconfirmed state as committed"
+        ]
+      }
+    }
+  },
+  "authority_model": {
+    "durable_authority": [
+      "ruleset",
+      "dataset"
+    ],
+    "transient_state": [
+      "chat history",
+      "model memory",
+      "reasoning state",
+      "session buffers"
+    ],
+    "rules": [
+      {
+        "id": "SCF-AUTH-001",
+        "statement": "The ruleset is the stable authority for behavior and data-model meaning."
+      },
+      {
+        "id": "SCF-AUTH-002",
+        "statement": "The dataset is the sole authority for committed application information."
+      },
+      {
+        "id": "SCF-AUTH-003",
+        "statement": "The chatbot performs transient semantic execution and owns no committed state."
+      },
+      {
+        "id": "SCF-AUTH-004",
+        "statement": "Transient conversation or model state must never substitute for committed authority."
+      }
+    ]
+  },
+  "mutation_model": {
+    "flow": [
+      "user intent",
+      "ruleset-governed interpretation",
+      "bounded authoritative context",
+      "semantic execution",
+      "structured payload",
+      "required review or approval",
+      "controlled commit",
+      "confirmed authoritative state",
+      "accurate result reporting"
+    ],
+    "rules": [
+      {
+        "id": "SCF-MUT-001",
+        "statement": "Only explicit structured payloads may cross a chatbot-to-authority mutation boundary."
+      },
+      {
+        "id": "SCF-MUT-002",
+        "statement": "The chatbot must not directly mutate authoritative artifacts."
+      },
+      {
+        "id": "SCF-MUT-003",
+        "statement": "A controlled commit mechanism validates and mechanically applies approved payloads without inventing semantics."
+      },
+      {
+        "id": "SCF-MUT-004",
+        "statement": "Proposed information remains nonauthoritative until commitment is confirmed."
+      },
+      {
+        "id": "SCF-MUT-005",
+        "statement": "Partial or failed commitment must not be reported as complete success."
+      }
+    ]
+  },
+  "context_model": {
+    "objective": "Provide the smallest authoritative context sufficient for the active task.",
+    "selection_order": [
+      "active task",
+      "applicable architecture invariants",
+      "task-relevant architecture rules",
+      "explicitly referenced contracts and schemas",
+      "required source files and tests"
+    ],
+    "rules": [
+      {
+        "id": "SCF-CTX-001",
+        "statement": "Context selection begins with the active task, not recursive repository loading."
+      },
+      {
+        "id": "SCF-CTX-002",
+        "statement": "Every lower-level task remains traceable to the higher-level authority that constrains it."
+      },
+      {
+        "id": "SCF-CTX-003",
+        "statement": "Only task-relevant documents, source files, and tests are loaded."
+      },
+      {
+        "id": "SCF-CTX-004",
+        "statement": "Context identity and revision must be recordable so the input can be reproduced."
+      },
+      {
+        "id": "SCF-CTX-005",
+        "statement": "Missing required authority makes the task underspecified; it is not permission to infer architecture."
+      }
+    ]
+  },
+  "specification_model": {
+    "levels": {
+      "0": "Smallest indivisible architecture invariant set.",
+      "1": "Architecture-wide responsibilities, terminology, authority relationships, and context rules.",
+      "2": "Component contracts, interfaces, schemas, and externally observable behavior.",
+      "implementation": "Non-normative realization of Level 2 contracts unless authority is explicitly delegated."
+    },
+    "rules": [
+      {
+        "id": "SCF-SPEC-001",
+        "statement": "Higher specification levels constrain lower levels."
+      },
+      {
+        "id": "SCF-SPEC-002",
+        "statement": "Lower levels must not reinterpret or override higher-level authority."
+      },
+      {
+        "id": "SCF-SPEC-003",
+        "statement": "Every normative document has one declared parent except the Level 0 root."
+      },
+      {
+        "id": "SCF-SPEC-004",
+        "statement": "Specification changes and implementation changes are separate operations."
+      }
+    ]
+  },
+  "construction_model": {
+    "decomposition": "Top down from architecture to contracts to bounded implementation tasks.",
+    "synthesis": "Bottom up from small independently testable units.",
+    "bounded_task_requires": [
+      "objective",
+      "authority references",
+      "required context",
+      "allowed read scope",
+      "allowed write scope",
+      "behavioral requirements",
+      "acceptance criteria"
+    ],
+    "rules": [
+      {
+        "id": "SCF-BUILD-001",
+        "statement": "A generator receives only one bounded synthesis task at a time."
+      },
+      {
+        "id": "SCF-BUILD-002",
+        "statement": "A synthesis task must not expand its own architectural or write scope."
+      },
+      {
+        "id": "SCF-BUILD-003",
+        "statement": "The development pipeline controls implementation context and scope; it is not a fourth SCF component."
+      }
+    ]
+  },
+  "foundation_model": {
+    "contract_foundation": "Generic SCF architecture and contracts used to construct self-contained SCF applications.",
+    "rules": [
+      {
+        "id": "SCF-FOUND-001",
+        "statement": "The Contract Foundation contains no application-specific rules or application data."
+      },
+      {
+        "id": "SCF-FOUND-002",
+        "statement": "A completed SCF application has no continuing runtime dependency on the Contract Foundation."
+      },
+      {
+        "id": "SCF-FOUND-003",
+        "statement": "SCF is independent of model provider, interface, storage medium, programming language, source-control system, and application domain."
+      }
+    ]
+  },
+  "controlled_vocabulary": {
+    "authority": "A source whose declarations govern interpretation or valid state within its assigned domain.",
+    "ruleset": "Stable behavioral and data-model authority for one SCF application.",
+    "dataset": "Durable authoritative application information governed by a ruleset.",
+    "chatbot": "Transient model-assisted semantic executor governed by a ruleset.",
+    "structured_payload": "Explicit machine-validatable representation of a proposed authoritative change.",
+    "controlled_commit_mechanism": "Mechanism that validates and mechanically applies approved structured payloads without inventing semantics.",
+    "session_buffer": "Transient, nonauthoritative working information accumulated during an interaction.",
+    "contract_foundation": "Generic architecture and contracts used to construct self-contained SCF applications.",
+    "synthesis_task": "Small bounded implementation unit with explicit authority, context, scope, requirements, and acceptance criteria."
+  },
+  "conformance_minimum": [
+    "The system preserves the separation between ruleset, dataset, and chatbot.",
+    "Committed application information has one identifiable authority.",
+    "Transient model state is never treated as committed authority.",
+    "Authoritative mutations use explicit structured payloads and controlled commit mechanisms.",
+    "Model context is bounded to the active task and traceable authority.",
+    "Lower-level specifications and implementations conform to higher-level authority.",
+    "Missing authority causes an underspecified result rather than architectural invention."
+  ]
+}

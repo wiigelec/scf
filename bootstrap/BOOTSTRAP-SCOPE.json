@@ -1,0 +1,30 @@
+{
+  "id": "SCF-BOOTSTRAP-001",
+  "status": "consumed-by-bootstrap-commit",
+  "purpose": "Create the minimum durable repository state required to begin top-down governed development of the Session Continuity Framework from its nested SCF Contract Foundations.",
+  "authority_inputs": [
+    "SCF Contract Foundations core@1.0.0-proposed-core"
+  ],
+  "allowed_outputs": [
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
+    "README.md",
+    "VERSION",
+    "authority/core/SCF-CORE.json",
+    "authority/core/SCF-CORE.sha256",
+    "authority/core/manifest.json",
+    "bootstrap/BOOTSTRAP-SCOPE.json",
+    "bootstrap/INITIAL-DEVELOPMENT-PROCESS.md",
+    "bootstrap/README.md",
+    "planning/README.md"
+  ],
+  "excluded": [
+    "product implementation",
+    "runtime architecture",
+    "speculative schemas",
+    "continuous integration",
+    "milestones, phases, or batches"
+  ],
+  "expires_after": "creation of the SCF bootstrap commit"
+}
