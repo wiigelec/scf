@@ -1,0 +1,100 @@
+name: Repository validation
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-validation:
+    name: repository-validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TESTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Check out tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TESTED_SHA }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify tested revision
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          if [[ "${actual_sha}" != "${TESTED_SHA}" ]]; then
+            echo "Expected tested SHA ${TESTED_SHA}, found ${actual_sha}" >&2
+            exit 1
+          fi
+          echo "Testing commit ${TESTED_SHA}"
+          echo "tested_sha=${TESTED_SHA}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "## Repository validation"
+            echo
+            echo "- Tested commit: \`${TESTED_SHA}\`"
+            echo "- Event SHA: \`${GITHUB_SHA}\`"
+            echo "- Event: \`${GITHUB_EVENT_NAME}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Run permanent validation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests/validation -v
+
+      - name: Run complete repository validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/validate --mode complete --format json | tee validation-result.json
+
+      - name: Record validation result
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo
+            echo "### Complete-work result"
+            if [[ -f validation-result.json ]]; then
+              echo
+              echo '```json'
+              cat validation-result.json
+              echo
+              echo '```'
+            else
+              echo
+              echo "No validation result file was produced."
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-validation-${{ steps.revision.outputs.tested_sha }}
+          path: validation-result.json
+          if-no-files-found: warn
+          retention-days: 14
