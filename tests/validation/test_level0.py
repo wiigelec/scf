@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY = "authority/level-0/SCF-LEVEL-0.json"
 MANIFEST = "authority/level-0/manifest.json"
 CHECKSUM = "authority/level-0/SCF-LEVEL-0.sha256"
+SCHEMA = "authority/level-0/SCF-LEVEL-0.schema.json"
+SCHEMA_CHECKSUM = "authority/level-0/SCF-LEVEL-0.schema.sha256"
 
 
 class Level0Tests(unittest.TestCase):
@@ -86,3 +88,94 @@ class Level0Tests(unittest.TestCase):
         result = self.run_check(root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("SCF-PATH-001", result.stdout)
+
+    def refresh_schema(self, root):
+        digest = hashlib.sha256((root / SCHEMA).read_bytes()).hexdigest()
+        (root / SCHEMA_CHECKSUM).write_text(f"{digest}  {SCHEMA}\n", encoding="utf-8")
+        manifest = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+        manifest["schema"]["sha256"] = digest
+        self.write_json(root, MANIFEST, manifest)
+
+    def test_missing_schema_fails(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        (root / SCHEMA).unlink()
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-REPO-002", result.stdout)
+
+    def test_schema_dialect_fails(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        value = json.loads((root / SCHEMA).read_text(encoding="utf-8"))
+        value["$schema"] = "https://json-schema.org/draft/2019-09/schema"
+        self.write_json(root, SCHEMA, value)
+        self.refresh_schema(root)
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-LEVEL0-SCHEMA-DIALECT", result.stdout)
+
+    def test_schema_identity_fails(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        value = json.loads((root / SCHEMA).read_text(encoding="utf-8"))
+        value["$id"] = "urn:wrong"
+        self.write_json(root, SCHEMA, value)
+        self.refresh_schema(root)
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-LEVEL0-SCHEMA-ID", result.stdout)
+
+    def test_authority_schema_reference_fails(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        value = json.loads((root / AUTHORITY).read_text(encoding="utf-8"))
+        value["$schema"] = "urn:wrong"
+        self.write_json(root, AUTHORITY, value)
+        self.refresh(root)
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-LEVEL0-SCHEMA-REFERENCE", result.stdout)
+
+    def test_schema_digest_fails(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        value = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+        value["schema"]["sha256"] = "0" * 64
+        self.write_json(root, MANIFEST, value)
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-LEVEL0-SCHEMA-MANIFEST-DIGEST", result.stdout)
+
+    def test_additional_property_fails_schema_conformance(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        value = json.loads((root / AUTHORITY).read_text(encoding="utf-8"))
+        value["unexpected"] = True
+        self.write_json(root, AUTHORITY, value)
+        self.refresh(root)
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-LEVEL0-SCHEMA-CONFORMANCE", result.stdout)
+
+    def test_missing_required_property_fails_schema_conformance(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        value = json.loads((root / AUTHORITY).read_text(encoding="utf-8"))
+        del value["document"]["authority_scope"]
+        self.write_json(root, AUTHORITY, value)
+        self.refresh(root)
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-LEVEL0-SCHEMA-CONFORMANCE", result.stdout)
+
+    def test_unsupported_schema_keyword_fails(self):
+        temporary, root = self.repository()
+        self.addCleanup(temporary.cleanup)
+        value = json.loads((root / SCHEMA).read_text(encoding="utf-8"))
+        value["allOf"] = []
+        self.write_json(root, SCHEMA, value)
+        self.refresh_schema(root)
+        result = self.run_check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCF-LEVEL0-SCHEMA-KEYWORD", result.stdout)

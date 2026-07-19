@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wiigelec.github.io/scf/schemas/SCF-LEVEL-0.schema.json",
+  "title": "SCF Level 0 Authority Schema",
+  "description": "Structural contract for the canonical SCF Level 0 authority document. Normative architecture meaning remains in the authority document.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "document",
+    "scf",
+    "provenance",
+    "architecture_invariants",
+    "specification_hierarchy"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://wiigelec.github.io/scf/schemas/SCF-LEVEL-0.schema.json"
+    },
+    "document": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "authority_role",
+        "authority_scope",
+        "field_semantics"
+      ],
+      "properties": {
+        "id": {
+          "const": "SCF-LEVEL-0"
+        },
+        "title": {
+          "const": "SCF Level 0 Authority"
+        },
+        "authority_role": {
+          "const": "durable Level 0 root authority"
+        },
+        "authority_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field_semantics": {
+          "type": "object",
+          "required": [
+            "descriptive_metadata",
+            "normative_authority",
+            "interpretation"
+          ],
+          "properties": {
+            "descriptive_metadata": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"
+              }
+            },
+            "normative_authority": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"
+              }
+            },
+            "interpretation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "scf": {
+      "type": "object",
+      "required": [
+        "name",
+        "abbreviation",
+        "contract_foundation",
+        "version",
+        "status"
+      ],
+      "properties": {
+        "name": {
+          "const": "Session Continuity Framework"
+        },
+        "abbreviation": {
+          "const": "SCF"
+        },
+        "contract_foundation": {
+          "const": "SCF Contract Foundation"
+        },
+        "version": {
+          "const": "1.0.0"
+        },
+        "status": {
+          "enum": [
+            "proposed"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "source_document",
+        "source_document_id",
+        "relationship",
+        "preservation"
+      ],
+      "properties": {
+        "source_document": {
+          "const": "authority/core/SCF-CORE.json"
+        },
+        "source_document_id": {
+          "const": "SCF-CORE"
+        },
+        "relationship": {
+          "const": "derived-from-bootstrap-foundational-authority"
+        },
+        "preservation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "architecture_invariants": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "statement"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SCF-L0-[A-Z]+-[0-9]{3}$"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "specification_hierarchy": {
+      "type": "object",
+      "required": [
+        "level",
+        "normative_parent",
+        "lower_level_parent_rule",
+        "refinement_rule",
+        "implementation_rule",
+        "scope_boundary"
+      ],
+      "properties": {
+        "level": {
+          "const": 0
+        },
+        "normative_parent": {
+          "type": "null"
+        },
+        "lower_level_parent_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refinement_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

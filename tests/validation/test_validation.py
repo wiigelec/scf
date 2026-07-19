@@ -113,7 +113,7 @@ class RepositoryFixture:
         }
         self.refresh_authority()
         level0_source = REPOSITORY_ROOT / "authority/level-0"
-        for name in ("SCF-LEVEL-0.json", "SCF-LEVEL-0.sha256", "manifest.json", "README.md"):
+        for name in ("SCF-LEVEL-0.json", "SCF-LEVEL-0.schema.json", "SCF-LEVEL-0.sha256", "SCF-LEVEL-0.schema.sha256", "manifest.json", "README.md"):
             source = level0_source / name
             if source.is_file():
                 self.write(f"authority/level-0/{name}", source.read_bytes())

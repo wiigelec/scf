@@ -1,4 +1,5 @@
 {
+  "$schema": "https://wiigelec.github.io/scf/schemas/SCF-LEVEL-0.schema.json",
   "document": {
     "id": "SCF-LEVEL-0",
     "title": "SCF Level 0 Authority",

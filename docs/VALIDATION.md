@@ -82,3 +82,13 @@ extend validation as follows:
 
 Do not infer unsupported authority, add dynamic plugin discovery, or encode
 future architecture merely to make the validator appear general.
+
+### Level 0 schema validation
+
+`SCF-LEVEL0-001` also validates the canonical Level 0 document against
+`authority/level-0/SCF-LEVEL-0.schema.json`. Validation is deterministic,
+offline, and standard-library-only. The supported vocabulary is deliberately
+bounded to the keywords used by the canonical schema; unsupported keywords are
+errors. Schema identity, dialect, authority `$schema` reference, checksum,
+manifest digest, and exact-byte consistency are validated separately from
+authority semantic and cross-field rules.

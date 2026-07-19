@@ -12,5 +12,11 @@
   "authority_role": "durable Level 0 root authority",
   "canonical_path": "authority/level-0/SCF-LEVEL-0.json",
   "provenance_source": "authority/core/SCF-CORE.json",
-  "sha256": "f994c705f2f1df62db8406697762a8de050f8bc1908084d699fd4ada1bd4b3c3"
+  "sha256": "36497a8488e0d6e6b7aa78e860e5494af7e38427e5fae55699b0535ef04de3d8",
+  "schema": {
+    "id": "https://wiigelec.github.io/scf/schemas/SCF-LEVEL-0.schema.json",
+    "dialect": "https://json-schema.org/draft/2020-12/schema",
+    "canonical_path": "authority/level-0/SCF-LEVEL-0.schema.json",
+    "sha256": "181cd2e13e2053c4a0deb4f39f0fe27ae63080087b94c1a2e0f220d858171f94"
+  }
 }
