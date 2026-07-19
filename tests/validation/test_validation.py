@@ -36,6 +36,14 @@ class RepositoryFixture:
         self.write("VERSION", "0.0.0-test\n")
         self.write("bootstrap/INITIAL-DEVELOPMENT-PROCESS.md", "# Process\n")
         self.write("bootstrap/README.md", "# Bootstrap\n")
+        for relative in (
+            ".github/ISSUE_TEMPLATE/governed-work.md",
+            "docs/GOVERNED-ISSUE-PLANNING.md",
+            "docs/templates/GOVERNED-DETAILED-SCOPE.md",
+            "docs/templates/GOVERNED-WORK-BREAKDOWN.md",
+        ):
+            source = REPOSITORY_ROOT / relative
+            self.write(relative, source.read_bytes())
         self.write("planning/README.md", "# Planning\n")
         self.write("planning/BOOTSTRAP-TO-DEVELOPMENT-ROADMAP.md", "# Roadmap\n")
         self.authority = {
@@ -292,6 +300,29 @@ class ValidationTests(unittest.TestCase):
     def test_missing_required_artifact_fails(self) -> None:
         (self.repo.root / "VERSION").unlink()
         self.assertIn("SCF-REPO-MISSING", self.ids(check_repository(self.repo.context())))
+
+    def test_missing_governed_planning_artifacts_fail(self) -> None:
+        required = (
+            ".github/ISSUE_TEMPLATE/governed-work.md",
+            "docs/GOVERNED-ISSUE-PLANNING.md",
+            "docs/templates/GOVERNED-DETAILED-SCOPE.md",
+            "docs/templates/GOVERNED-WORK-BREAKDOWN.md",
+        )
+        for relative in required:
+            with self.subTest(relative=relative):
+                target = self.repo.root / relative
+                original = target.read_bytes()
+                target.unlink()
+                diagnostics = check_repository(self.repo.context())
+                self.assertTrue(
+                    any(
+                        item.diagnostic_id == "SCF-REPO-MISSING"
+                        and item.path == relative
+                        for item in diagnostics
+                    )
+                )
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(original)
 
     def test_bootstrap_status_fails(self) -> None:
         self.repo.bootstrap["status"] = "active"

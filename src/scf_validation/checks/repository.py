@@ -22,6 +22,10 @@ REQUIRED_ARTIFACTS = (
     "bootstrap/BOOTSTRAP-SCOPE.json",
     "bootstrap/INITIAL-DEVELOPMENT-PROCESS.md",
     "bootstrap/README.md",
+    ".github/ISSUE_TEMPLATE/governed-work.md",
+    "docs/GOVERNED-ISSUE-PLANNING.md",
+    "docs/templates/GOVERNED-DETAILED-SCOPE.md",
+    "docs/templates/GOVERNED-WORK-BREAKDOWN.md",
     "planning/README.md",
     "planning/BOOTSTRAP-TO-DEVELOPMENT-ROADMAP.md",
 )

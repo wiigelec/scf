@@ -92,3 +92,21 @@ bounded to the keywords used by the canonical schema; unsupported keywords are
 errors. Schema identity, dialect, authority `$schema` reference, checksum,
 manifest digest, and exact-byte consistency are validated separately from
 authority semantic and cross-field rules.
+
+## Governed planning artifacts
+
+`SCF-REPO-001` requires the governed issue planning convention and its three
+reusable record templates:
+
+- `.github/ISSUE_TEMPLATE/governed-work.md`
+- `docs/GOVERNED-ISSUE-PLANNING.md`
+- `docs/templates/GOVERNED-DETAILED-SCOPE.md`
+- `docs/templates/GOVERNED-WORK-BREAKDOWN.md`
+
+These checks protect discovery of the governed issue planning convention and
+the reusable templates. They do not fetch GitHub, validate live issue contents,
+interpret issue state, authorize work, decide acceptance, or establish the
+official development process.
+
+`docs/examples/GOVERNED-WORK-EXAMPLE.md` is illustrative and intentionally is
+not a required repository artifact.
