@@ -219,3 +219,75 @@ work, decide acceptance, or establish the official development process.
 
 `docs/examples/GOVERNED-WORK-EXAMPLE.md` is illustrative and intentionally is
 not a required repository artifact.
+## Continuous integration evidence
+
+Issue #9 adds GitHub Actions execution of this validation gate through
+`.github/workflows/repository-validation.yml`.
+
+The workflow uses the stable check name `repository-validation` and runs for:
+
+- pull requests when they are opened, reopened, synchronized with a later commit,
+  or marked ready for review;
+- pushes to `main`;
+- explicitly requested manual workflow dispatches.
+
+### Exact tested revision
+
+For a pull request, the workflow tests
+`github.event.pull_request.head.sha`. It does not silently treat GitHub's
+synthetic pull-request merge ref as the proposed source revision.
+
+For other supported events, the workflow tests `github.sha`. The selected SHA is
+passed explicitly to checkout, verified against `git rev-parse HEAD`, written to
+the job log and step summary, and used in the validation-evidence artifact name.
+
+CI evidence is commit-specific. A passing run for one SHA is not evidence for a
+later SHA. A pull-request `synchronize` event creates a new run for the new head
+commit.
+
+### Commands and failure behavior
+
+CI runs the permanent validation regression suite:
+
+```sh
+python -m unittest discover -s tests/validation -v
+```
+
+It then invokes the accepted complete-work gate without reimplementing its
+registry or rules:
+
+```sh
+./scripts/validate --mode complete --format json
+```
+
+The JSON result is captured as `validation-result.json`. Shell `pipefail`
+semantics preserve the validator's nonzero exit status when output is also sent
+through `tee`, so validation failure fails the workflow check.
+
+The workflow grants only read access to repository contents and disables
+persisted checkout credentials. It does not repair files, commit changes, push
+branches, or otherwise mutate repository content.
+
+### Local and CI responsibilities
+
+These evidence surfaces answer different questions:
+
+- focused local validation gives intentionally incomplete edit-time feedback;
+- complete local validation checks the full resulting working-tree state;
+- local certification identifies an exact clean revision that passed the full
+  gate;
+- CI independently reports that the workflow tested an identified commit and
+  that its tests and complete-work validation passed or failed;
+- diff review evaluates scope, intent, quality, and authorization;
+- acceptance, merge, issue closure, and successor authorization remain separate
+  lifecycle decisions.
+
+A successful CI run does not approve or accept a change. It also does not replace
+local validation, certification where required, or human review.
+
+### Branch-protection expectation
+
+Repository settings may use the stable `repository-validation` check as a
+required status check. This documentation identifies the intended check name but
+does not claim that branch protection is configured. Branch-protection state is
+an operational repository setting and must be verified independently.

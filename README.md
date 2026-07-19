@@ -50,3 +50,11 @@ Focused checks and clean-revision certification use the same entrypoint:
 See [`docs/VALIDATION.md`](docs/VALIDATION.md) for mode semantics, machine
 output, exit statuses, registry integrity, and the boundaries between
 validation, diff review, CI evidence, and acceptance.
+
+### Continuous integration
+
+GitHub Actions runs the accepted complete-work gate through
+[`.github/workflows/repository-validation.yml`](.github/workflows/repository-validation.yml).
+The stable check name is `repository-validation`. See
+[`docs/VALIDATION.md`](docs/VALIDATION.md) for exact tested-revision semantics,
+local-to-CI responsibility boundaries, and branch-protection expectations.
