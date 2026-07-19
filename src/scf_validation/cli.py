@@ -9,7 +9,13 @@ from typing import Sequence
 
 from .checks import REGISTERED_CHECKS
 from .context import ContextError, ValidationContext
-from .diagnostics import Diagnostic, Severity
+from .gate import (
+    ValidationMode,
+    ValidationRun,
+    build_run,
+    inspect_repository_state,
+    resolve_mode,
+)
 from .registry import Check
 
 
@@ -22,6 +28,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--list-checks",
         action="store_true",
         help="list registered checks and exit",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=tuple(item.value for item in ValidationMode),
+        help=(
+            "validation mode: focused requires --check; complete runs the full "
+            "registry; certify is reserved until certification semantics are implemented"
+        ),
     )
     parser.add_argument(
         "--check",
@@ -38,32 +52,37 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def select_checks(check_ids: Sequence[str] | None) -> tuple[Check, ...]:
-    if not check_ids:
+def select_checks(
+    mode: ValidationMode,
+    check_ids: Sequence[str] | None,
+) -> tuple[Check, ...]:
+    if mode == ValidationMode.COMPLETE:
         return REGISTERED_CHECKS
+
     by_id = {check.check_id: check for check in REGISTERED_CHECKS}
-    unknown = sorted(set(check_ids) - set(by_id))
+    unknown = sorted(set(check_ids or ()) - set(by_id))
     if unknown:
         raise ValueError("unknown check identifier(s): " + ", ".join(unknown))
-    requested = set(check_ids)
+    requested = set(check_ids or ())
     return tuple(check for check in REGISTERED_CHECKS if check.check_id in requested)
 
 
-def run_checks(context: ValidationContext, checks: Sequence[Check]) -> tuple[int, int]:
-    errors = 0
-    warnings = 0
-    for check in checks:
-        diagnostics = check.function(context)
-        check_errors = [d for d in diagnostics if d.severity == Severity.ERROR]
-        status = "FAIL" if check_errors else "PASS"
-        print(f"{status} {check.check_id} {check.name}")
-        for diagnostic in diagnostics:
+def execute_checks(
+    context: ValidationContext,
+    mode: ValidationMode,
+    checks: Sequence[Check],
+) -> ValidationRun:
+    repository = inspect_repository_state(context.root)
+    diagnostics = tuple(check.function(context) for check in checks)
+    return build_run(mode, repository, checks, diagnostics)
+
+
+def render_human(run: ValidationRun) -> None:
+    for result in run.checks:
+        status = "PASS" if result.passed else "FAIL"
+        print(f"{status} {result.check_id} {result.name}")
+        for diagnostic in result.diagnostics:
             print(diagnostic.render())
-            if diagnostic.severity == Severity.ERROR:
-                errors += 1
-            else:
-                warnings += 1
-    return errors, warnings
 
 
 def main(root: Path, argv: Sequence[str] | None = None) -> int:
@@ -71,12 +90,19 @@ def main(root: Path, argv: Sequence[str] | None = None) -> int:
     try:
         args = parser.parse_args(argv)
         if args.list_checks:
+            if args.mode or args.check_ids:
+                raise ValueError(
+                    "--list-checks cannot be combined with --mode or --check"
+                )
             for check in REGISTERED_CHECKS:
                 print(f"{check.check_id} {check.name}")
             return 0
-        checks = select_checks(args.check_ids)
+
+        mode = resolve_mode(args.mode, args.check_ids)
+        checks = select_checks(mode, args.check_ids)
         context = ValidationContext.create(root)
-        errors, warnings = run_checks(context, checks)
+        run = execute_checks(context, mode, checks)
+        render_human(run)
     except (ContextError, ValueError) as exc:
         print(f"Validation invocation failed: {exc}")
         return 2
@@ -86,8 +112,14 @@ def main(root: Path, argv: Sequence[str] | None = None) -> int:
             traceback.print_exc()
         return 2
 
-    if errors:
-        print(f"Validation failed: {errors} error(s), {warnings} warning(s)")
+    if run.errors:
+        print(
+            f"Validation failed: {run.errors} error(s), "
+            f"{run.warnings} warning(s)"
+        )
         return 1
-    print(f"Validation passed: {errors} error(s), {warnings} warning(s)")
+    print(
+        f"Validation passed: {run.errors} error(s), "
+        f"{run.warnings} warning(s)"
+    )
     return 0
