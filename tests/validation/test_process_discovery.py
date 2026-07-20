@@ -9,7 +9,7 @@ BOOTSTRAP = REPOSITORY_ROOT / "bootstrap" / "INITIAL-DEVELOPMENT-PROCESS.md"
 PLANNING = REPOSITORY_ROOT / "docs" / "GOVERNED-ISSUE-PLANNING.md"
 OFFICIAL = REPOSITORY_ROOT / "docs" / "OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md"
 RESTORATION = (
-    REPOSITORY_ROOT / "docs" / "GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md"
+    REPOSITORY_ROOT / "docs" / "GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md"
 )
 
 
@@ -44,7 +44,7 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
     def test_readme_discovers_session_initialization(self) -> None:
         for required in (
             "governed development-session initialization and interaction standard",
-            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
+            "docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md",
             "guarded read-only Python interrogation script",
             "python ~/Downloads/<unique-script-name>.py",
             "exactly one unique non-overwriting result file",
@@ -65,7 +65,7 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
     def test_official_process_identifies_initialization_relationship(self) -> None:
         for required in (
             "## Development-session initialization and interaction",
-            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
+            "docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md",
             "python ~/Downloads/<unique-script-name>.py",
             "direct connector writes are not a governed mutation path",
         ):
@@ -86,7 +86,7 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
         from src.scf_validation.checks.repository import REQUIRED_ARTIFACTS
 
         self.assertIn(
-            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
+            "docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md",
             REQUIRED_ARTIFACTS,
         )
         self.assertNotIn("scripts/restore-session", REQUIRED_ARTIFACTS)

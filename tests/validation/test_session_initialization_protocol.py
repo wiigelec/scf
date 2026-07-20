@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-PROTOCOL = REPOSITORY_ROOT / "docs" / "GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md"
+PROTOCOL = REPOSITORY_ROOT / "docs" / "GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md"
 
 
 class GovernedDevelopmentSessionInitializationTests(unittest.TestCase):

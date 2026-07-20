@@ -385,9 +385,8 @@ A new chatbot-user session must recover governed development context from durabl
 evidence rather than prior chat history or model memory.
 
 The repository's official initialization and interaction standard is
-`docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md`. The path is retained during
-the issue #24 transition, but the document defines session initialization and
-guarded interaction rather than an executable restoration subsystem.
+`docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md`. The document defines session initialization and guarded
+interaction rather than an executable restoration subsystem.
 
 The chatbot may use read-only remote access to orient itself to repository
 identity, accepted authority and process, governing issue scope, designated

@@ -234,8 +234,7 @@ pull-request, commit, validation, or CI state.
 
 The designated issue body, `## Governed detailed scope` comment, and
 `## Governed work breakdown and patch plan` comment are durable inputs to
-`docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md`, whose retained path now
-defines governed development-session initialization and interaction.
+`docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md`, which defines governed development-session initialization and interaction.
 
 A new session reads those records during remote orientation to recover the
 bounded objective, accepted base, working branch, patch sequence, expected

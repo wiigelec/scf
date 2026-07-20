@@ -35,7 +35,7 @@ The three-record bounded-work planning convention is documented in
 
 Independent sessions initialize the smallest authoritative development context
 through the
-[governed development-session initialization and interaction standard](docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md).
+[governed development-session initialization and interaction standard](docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md).
 
 A chatbot may use read-only remote access for orientation, then uses a guarded
 read-only Python interrogation script to establish the actual local branch, exact
