@@ -1,5 +1,12 @@
 # Initial Development Process
 
+
+> **Historical bootstrap record.** This provisional process is preserved as
+> evidence of SCF's bootstrap development. It is superseded for new governed
+> work by `docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md`. Existing historical
+> actions remain interpreted under the process authoritative when they occurred.
+
+
 ## Historical status and supersession
 
 This document records the provisional bootstrap-era development process that

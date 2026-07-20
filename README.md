@@ -7,6 +7,21 @@ The Contract Foundation defines the generic architecture, authority model,
 construction constraints, and minimum conformance rules from which governed
 SCF applications are developed.
 
+
+## Repository lifecycle
+
+SCF repository work is governed by
+[`docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md`](docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md).
+The provisional process in
+[`bootstrap/INITIAL-DEVELOPMENT-PROCESS.md`](bootstrap/INITIAL-DEVELOPMENT-PROCESS.md)
+is retained as historical bootstrap evidence and is superseded for new work.
+
+The evidence and completion boundary for the repository's entry into normal
+governed development are recorded in
+[`planning/BOOTSTRAP-TO-DEVELOPMENT-TRANSITION.md`](planning/BOOTSTRAP-TO-DEVELOPMENT-TRANSITION.md).
+That lifecycle record does not authorize any particular successor feature;
+successor work still requires its own governed issue and accepted scope.
+
 ## Repository state
 
 This repository is in governed post-bootstrap foundation development. It now
