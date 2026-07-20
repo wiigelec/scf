@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -27,6 +28,19 @@ def _git(root: Path, *args: str, check: bool = True) -> str:
         detail = result.stderr.strip() or result.stdout.strip()
         raise RestorationError(f"git {' '.join(args)} failed: {detail}")
     return result.stdout.strip()
+
+
+def _observed_branch(root: Path) -> str:
+    branch = _git(root, "branch", "--show-current")
+    if branch:
+        return branch
+
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        head_ref = os.environ.get("GITHUB_HEAD_REF", "").strip()
+        if head_ref:
+            return head_ref
+
+    return ""
 
 
 def _stable_strings(value: Any) -> list[str]:
@@ -127,7 +141,7 @@ def restore_session(root: Path, supplied: Mapping[str, Any]) -> RestorationResul
     before_status = _git(root, "status", "--porcelain=v1", "--untracked-files=all")
     before_refs = _git(root, "show-ref", check=False)
 
-    observed_branch = _git(root, "branch", "--show-current")
+    observed_branch = _observed_branch(root)
     observed_head = before_head
     repository_full_name = supplied.get("repository_full_name")
     supplied_branch = supplied.get("supplied_branch")

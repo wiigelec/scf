@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
@@ -100,6 +102,43 @@ class SessionRestorationEntrypointTests(unittest.TestCase):
         result = restore_session(root, evidence).as_dict()
         self.assertEqual("underspecified", result["status"])
         self.assertIn("RESTORE-DETAILED-COMMENT", {item["code"] for item in result["diagnostics"]})
+
+    def test_detached_head_uses_github_actions_head_ref(self):
+        temporary, root, head = self.make_repository()
+        self.addCleanup(temporary.cleanup)
+        self.git(root, "checkout", "--detach", head)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_ACTIONS": "true",
+                "GITHUB_HEAD_REF": "issue-11-governed-development-session-restoration",
+            },
+        ):
+            result = restore_session(root, self.base_evidence(head)).as_dict()
+        self.assertEqual("complete", result["status"])
+        self.assertEqual(
+            "issue-11-governed-development-session-restoration",
+            result["repository"]["observed_branch"],
+        )
+
+    def test_detached_head_without_trusted_ref_is_underspecified(self):
+        temporary, root, head = self.make_repository()
+        self.addCleanup(temporary.cleanup)
+        self.git(root, "checkout", "--detach", head)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_ACTIONS": "false",
+                "GITHUB_HEAD_REF": "issue-11-governed-development-session-restoration",
+            },
+        ):
+            result = restore_session(root, self.base_evidence(head)).as_dict()
+        self.assertEqual("underspecified", result["status"])
+        self.assertEqual("", result["repository"]["observed_branch"])
+        self.assertIn(
+            "RESTORE-BRANCH-MISMATCH",
+            {item["code"] for item in result["diagnostics"]},
+        )
 
     def test_branch_mismatch_is_underspecified(self):
         temporary, root, head = self.make_repository()
