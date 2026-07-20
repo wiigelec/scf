@@ -379,27 +379,50 @@ A later official process may amend or supersede this one only through an accepte
 repository-wide process change with explicit parent, scope, transition, and
 supersession rules.
 
-## Session restoration across independent sessions
+## Development-session initialization and interaction
 
-A new assistant-user session must recover governed development context from durable
+A new chatbot-user session must recover governed development context from durable
 evidence rather than prior chat history or model memory.
 
-The repository's official read-only restoration protocol is
-`docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md`. Its executable entrypoint is
-`./scripts/restore-session`.
+The repository's official initialization and interaction standard is
+`docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md`. The document defines session initialization and guarded
+interaction rather than an executable restoration subsystem.
 
-Restoration applies this process; it does not replace or amend it. It must preserve
-the distinctions among accepted authority, governing issue scope, designated
-planning records, branch and commit state, validation and CI evidence, semantic
-review, acceptance, merge, closure, and successor authorization.
+The chatbot may use read-only remote access to orient itself to repository
+identity, accepted authority and process, governing issue scope, designated
+planning records, branch and pull-request state, CI, review, merge, and closure
+evidence. Remote orientation must not infer the state of the user's local Git
+tree.
 
-Chat-developed work may be transferred into the local Git tree through a guarded
-`user-run-python-script`. Such a script is a transient execution artifact, not
-accepted repository state. Its filename, digest when available, invocation,
-expected branch and revision, intended file boundary, planned commit subject,
-execution state, transcript evidence, and local-versus-remote visibility may be
-restored as evidence.
+Before local mutation, the actual checkout is interrogated through a read-only
+guarded Python script. It establishes repository identity, branch, exact `HEAD`,
+accepted-base relationship, upstream and divergence, working-tree state, local
+commits, changed files, and blockers.
 
-A restoration result may identify an exact already-authorized command as the next
-action. It may not execute that command, mutate state, invent missing context, or
-authorize broader or successor work.
+All governed local repository mutations and remote GitHub mutations are
+performed exclusively through uniquely named, agent-developed guarded Python
+scripts. The chatbot supplies each script for download to `~/Downloads` and
+provides exactly one literal command of the form:
+
+```sh
+python ~/Downloads/<unique-script-name>.py
+```
+
+The user runs the command from the repository root. The command contains no
+`cd`, shell variables, heredoc, command substitution, or chained shell
+operations.
+
+Each script invokes standard `git`, `gh`, Python, and repository-native commands
+as needed; prints immediate flushed progress and periodic heartbeat messages;
+enforces exact preconditions and bounded mutation authority; refuses overwrite;
+and writes exactly one uniquely named result file in `~/Downloads`.
+
+The user uploads that result file to the chatbot. No successor script or
+publication step assumes success until the result has been reviewed. A failed or
+partial attempt is followed by a separately identified recovery or correction
+script rather than an unrecorded manual retry.
+
+Interrogation, file mutation, validation, commit, push, pull-request, issue,
+review, merge, and closure actions remain distinct authorizations. Read-only
+chatbot connectors may be used for orientation and verification. The protocol
+requires that direct connector writes are not a governed mutation path.

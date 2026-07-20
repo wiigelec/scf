@@ -72,7 +72,7 @@ GitHub issue state and accepted repository evidence remain authoritative.
 | Repository development validation gate | #8 | Open | #7 |
 | Continuous-integration enforcement | #9 | Open | #8 |
 | Official governed development process | #10 | Open | #5, #7, #8, #9 |
-| Governed development session restoration | #11 | Open | #7, #10 |
+| Governed development-session initialization | #24 | Open | #11 |
 | Bootstrap-to-development transition | #12 | Open | #4, #5, #7, #8, #9, #10, #11 |
 
 Issue #7 preferably follows #5 even though #5 is not a strict predecessor.
@@ -151,7 +151,7 @@ certification, acceptance, and closure into one event.
 
 ### F7 — Session-context restoration
 
-**Issue:** #11, **Establish governed development session restoration**
+**Issue:** #24, **Replace session restoration with governed development-session initialization**
 
 **Purpose:** Allow a new assistant-user session to recover the current governed
 development state from repository, branch, planning, validation, and local
@@ -263,7 +263,7 @@ After #4 is accepted:
 4. Complete #8 — **Establish the repository development validation gate**.
 5. Complete #9 — **Add continuous-integration enforcement**.
 6. Complete #10 — **Establish the official governed development process**.
-7. Complete #11 — **Establish governed development session restoration**.
+7. Complete #24 — **Replace session restoration with governed development-session initialization**.
 8. Complete #12 — **Complete the bootstrap-to-development transition**.
 
 This is a recommended sequence, not authorization to begin an issue. Every

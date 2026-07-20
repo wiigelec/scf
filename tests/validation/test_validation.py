@@ -40,8 +40,7 @@ class RepositoryFixture:
             ".github/ISSUE_TEMPLATE/governed-work.md",
             "docs/GOVERNED-ISSUE-PLANNING.md",
             "docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md",
-            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
-            "scripts/restore-session",
+            "docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md",
             "docs/templates/GOVERNED-DETAILED-SCOPE.md",
             "docs/templates/GOVERNED-WORK-BREAKDOWN.md",
         ):
