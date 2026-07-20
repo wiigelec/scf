@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -ne 1 ]; then
+    echo "usage: ./scripts/governed-execute /path/to/operation.json" >&2
+    exit 64
+fi
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m scf_governed_executor "$1"

@@ -379,6 +379,30 @@ A later official process may amend or supersede this one only through an accepte
 repository-wide process change with explicit parent, scope, transition, and
 supersession rules.
 
+## Governed-executor amendment and Issue #24 transition
+
+Upon acceptance and merge of Issue #31, new governed operations use the
+repository-native governed executor and declarative operation descriptions when
+the accepted executor implements the required operation class.
+
+This amendment prospectively supersedes only the Issue #24 requirements that
+each new governed mutation must be implemented by a bespoke agent-generated
+Python script, invoked through the literal `python` command, and write its result
+specifically to `~/Downloads`. Those mechanics become executor requirements:
+bounded authorization, exact guards, immediate progress and heartbeat,
+redaction, mutation accounting, non-overwriting result evidence, and verified
+postconditions.
+
+Issue #24 remains valid historical evidence. Work properly completed under it is
+not retroactively invalidated. Already-open work continues under the process
+authoritative when it began unless an explicit governed decision migrates it.
+Unsupported executor operation classes remain blocked or require a documented
+transition exception; they do not silently fall back to unrestricted scripts.
+
+The executor does not change the separate authority of Git, GitHub Issues, pull
+requests, CI, review, acceptance, merge, or closure. It does not authorize direct
+unguarded chatbot mutation or connector writes.
+
 ## Development-session initialization and interaction
 
 A new chatbot-user session must recover governed development context from durable
@@ -394,33 +418,24 @@ planning records, branch and pull-request state, CI, review, merge, and closure
 evidence. Remote orientation must not infer the state of the user's local Git
 tree.
 
-Before local mutation, the actual checkout is interrogated through a read-only
-guarded Python script. It establishes repository identity, branch, exact `HEAD`,
-accepted-base relationship, upstream and divergence, working-tree state, local
-commits, changed files, and blockers.
+Before mutation, the actual checkout is interrogated through the accepted
+governed interaction mechanism. The interrogation establishes repository
+identity, branch, exact `HEAD`, accepted-base relationship, upstream and
+divergence, working-tree state, local commits, changed files, and blockers.
 
-All governed local repository mutations and remote GitHub mutations are
-performed exclusively through uniquely named, agent-developed guarded Python
-scripts. The chatbot supplies each script for download to `~/Downloads` and
-provides exactly one literal command of the form:
+After the Issue #31 amendment becomes effective, supported operations are
+performed through `scripts/governed-execute` with one uniquely identified
+declarative operation description. The user invokes the repository-native
+entrypoint with one literal command and returns the executor's single unique
+non-overwriting result artifact for review.
 
-```sh
-python ~/Downloads/<unique-script-name>.py
-```
-
-The user runs the command from the repository root. The command contains no
-`cd`, shell variables, heredoc, command substitution, or chained shell
-operations.
-
-Each script invokes standard `git`, `gh`, Python, and repository-native commands
-as needed; prints immediate flushed progress and periodic heartbeat messages;
-enforces exact preconditions and bounded mutation authority; refuses overwrite;
-and writes exactly one uniquely named result file in `~/Downloads`.
-
-The user uploads that result file to the chatbot. No successor script or
-publication step assumes success until the result has been reviewed. A failed or
-partial attempt is followed by a separately identified recovery or correction
-script rather than an unrecorded manual retry.
+The executor prints immediate progress and periodic heartbeat messages,
+constructs privileged commands from its reviewed capability definitions,
+enforces exact preconditions and authorization, redacts persisted output, and
+verifies resulting local or remote state. No successor operation assumes success
+until the returned result is reviewed. Failure or partial application requires a
+new operation identity and guards based on observed evidence rather than an
+unrecorded retry.
 
 Interrogation, file mutation, validation, commit, push, pull-request, issue,
 review, merge, and closure actions remain distinct authorizations. Read-only
