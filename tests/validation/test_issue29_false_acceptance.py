@@ -87,6 +87,9 @@ class BootstrapOutputTests(unittest.TestCase):
         def safe_path(self, repository_path):
             return self.root / repository_path
 
+        def is_regular_file(self, repository_path):
+            return self.safe_path(repository_path).is_file()
+
     def base(self):
         return {
             "status": "consumed-by-bootstrap-commit",

@@ -15,14 +15,62 @@ Runtime requirements are Python 3.11 or newer, Git, and the Python standard
 library. Validation performs no network access and does not modify repository
 content.
 
-## Modes
+## Modes and normative repository-state contract
 
-The gate has three modes with distinct evidence claims.
+A validation result is a claim about one explicit content source. It is not a
+claim about the repository in the abstract.
+
+| Mode | Content source | Dirty tree | Authorized success claim | Evidence use |
+| --- | --- | --- | --- | --- |
+| `focused` | effective working-tree filesystem view | permitted | selected checks passed for that working-tree view | edit-time development evidence only |
+| `complete` | effective working-tree filesystem view | permitted | the complete required registry passed for that working-tree view | complete local development evidence; not certification |
+| `certify` | exact current `HEAD` commit tree | forbidden | the complete required registry passed for the named revision | exact-revision certification evidence; not acceptance or publication by itself |
+
+Machine output records `repository.content_source` as `working-tree` or
+`revision`. It records `repository.content_revision` only for revision-backed
+validation. The separate repository `classification` describes cleanliness and
+whether `HEAD` exists; it does not redefine the content source.
+
+### Working-tree state source
+
+Focused and complete modes use the effective filesystem view under the
+repository root. The index is not validated as an independent snapshot.
+Instead:
+
+- tracked files are read from their current filesystem paths, so unstaged and
+  staged content is represented by the bytes currently present;
+- staged-new and untracked, non-ignored JSON files are included in JSON
+  discovery when they exist in the filesystem;
+- ignored files are excluded;
+- staged-deleted and unstaged-deleted paths are absent;
+- a rename is represented by the destination path that exists, not by a
+  reconstructed source path;
+- unresolved index conflicts fail at the gate with `SCF-GATE-STATE-001` before
+  content checks run because no single authoritative filesystem view can
+  represent all conflict stages;
+- type changes are judged from the current filesystem entry;
+- a symlink is not accepted where a governed regular file is required, and
+  validation does not traverse a symlink target outside the repository.
+
+A dirty working tree is permitted. Results apply to the complete selected
+working-tree view, not merely to a Git diff or changed lines.
+
+### Revision state source
+
+Certification uses the exact tree named by the current `HEAD` revision.
+Required paths, JSON discovery, file bytes, and regular-file type checks are
+resolved from that Git object state. Staged, unstaged, untracked, and ignored
+local content does not alter the bytes or paths presented to checks.
+
+Certification requires an existing `HEAD`, a clean index, and a clean
+worktree. Cleanliness is a precondition for making the certification claim; the
+validated content remains the exact named revision rather than a filesystem
+substitute.
 
 ### Focused validation
 
 Focused mode runs one or more explicitly selected registered checks against the
-current working-tree state:
+working-tree state source:
 
 ```sh
 ./scripts/validate --check SCF-JSON-001
@@ -33,13 +81,14 @@ current working-tree state:
 Using `--check` without `--mode` selects focused mode for backward
 compatibility. Explicit focused mode requires at least one `--check`.
 
-Focused validation is edit-time feedback. It is intentionally incomplete and
-does not claim that the complete required validator inventory passed.
+Focused validation is intentionally incomplete. It does not claim that the
+complete required validator inventory passed and is not publication,
+certification, acceptance, or release evidence.
 
 ### Complete-work validation
 
 Complete mode runs the entire required explicit validator registry against the
-full resulting repository state:
+working-tree state source:
 
 ```sh
 ./scripts/validate
@@ -49,15 +98,16 @@ full resulting repository state:
 Running without `--mode` or `--check` selects complete mode for backward
 compatibility.
 
-Complete mode may run with uncommitted changes. Its result applies to the full
-working-tree state read by the validators, not only to changed lines and not
-only to a Git diff. When edits exist, machine output classifies the repository
-as `working-tree` and reports the current `HEAD` separately.
+Complete mode is the correct mode for validating uncommitted bounded work. A
+passing result means only that the complete implemented registry passed for the
+reported working-tree content source. It remains distinct from diff review,
+CI, exact-revision certification, acceptance, and publication.
 
 ### Certification validation
 
-Certification runs the complete required registry only when the repository has
-an existing `HEAD` and the working tree and index are clean:
+Certification runs the complete required registry against the revision state
+source only when the repository has an existing `HEAD` and the working tree and
+index are clean:
 
 ```sh
 ./scripts/validate --mode certify
@@ -70,12 +120,16 @@ Successful human output includes:
 CERTIFIED <exact-commit-sha>
 ```
 
-Successful machine output records the same exact revision, `clean: true`, and
-repository classification `clean-revision`.
+Successful machine output records the same exact revision, `clean: true`,
+repository classification `clean-revision`, `content_source: "revision"`, and
+that SHA as `content_revision`.
 
 Certification means only that the exact clean revision passed the complete
 validation gate. It does not approve, accept, merge, close, authorize,
-supersede, or release work.
+supersede, publish, or release work.
+
+The validated content is the exact named `HEAD` tree; unrelated local
+working-tree, index, untracked, or ignored content is not substituted for it.
 
 A dirty repository fails certification before content checks run. Complete mode
 remains the correct mode for validating uncommitted bounded work.
@@ -115,7 +169,9 @@ Validation-result JSON uses `schema_version` 1 and contains:
 
 - `mode`: `focused`, `complete`, or `certify`;
 - `outcome`: `pass` or `fail`;
-- `repository`: classification, exact revision where available, and cleanliness;
+- `repository`: classification, current revision where available, cleanliness,
+  authoritative `content_source`, and exact `content_revision` for revision-backed
+  validation;
 - `checks`: ordered check identifiers, names, outcomes, and diagnostics;
 - `diagnostics`: gate-level diagnostics such as certification precondition
   failures;
@@ -135,8 +191,11 @@ The machine result reports one of:
 - `clean-revision`: an existing `HEAD` with a clean worktree and index;
 - `unborn-working-tree`: a valid Git repository without an initial commit.
 
-Focused and complete validation support all three states. Certification requires
-`clean-revision`.
+Focused and complete validation support all three classifications and use the
+`working-tree` content source. Certification requires `clean-revision` and uses
+the `revision` content source. Classification and content source are separate:
+a clean repository may still be validated as a working tree in focused or
+complete mode.
 
 ## Exit statuses
 

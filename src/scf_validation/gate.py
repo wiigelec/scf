@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Sequence
 
-from .context import ContextError
+from .context import ContextError, RepositoryContentSource
 from .diagnostics import Diagnostic, Severity
 from .registry import Check
 
@@ -27,6 +27,8 @@ class RepositoryState:
 
     revision: str | None
     clean: bool
+    content_source: RepositoryContentSource = RepositoryContentSource.WORKING_TREE
+    content_revision: str | None = None
 
     @property
     def classification(self) -> str:
@@ -39,6 +41,8 @@ class RepositoryState:
             "classification": self.classification,
             "revision": self.revision,
             "clean": self.clean,
+            "content_source": self.content_source.value,
+            "content_revision": self.content_revision,
         }
 
 
@@ -174,6 +178,33 @@ def inspect_repository_state(root: Path) -> RepositoryState:
         raise ContextError(f"unable to inspect repository state: {detail}") from exc
 
     return RepositoryState(revision=revision, clean=not bool(status))
+
+
+def working_tree_state_diagnostics(root: Path) -> tuple[Diagnostic, ...]:
+    """Reject local states that cannot be represented by one filesystem view."""
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "-u", "-z"],
+            cwd=root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError as exc:
+        raise ContextError("git is required but was not found") from exc
+    except subprocess.CalledProcessError as exc:
+        detail = exc.stderr.decode("utf-8", "replace").strip()
+        raise ContextError(f"unable to inspect unresolved index entries: {detail}") from exc
+    if not result.stdout:
+        return ()
+    return (
+        Diagnostic(
+            "SCF-GATE-STATE-001",
+            Severity.ERROR,
+            "working-tree validation cannot proceed with unresolved merge conflicts",
+            context="content_source=working-tree",
+        ),
+    )
 
 
 def certification_diagnostics(

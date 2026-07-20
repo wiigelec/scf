@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Sequence
 
 from .checks import REGISTERED_CHECKS, REQUIRED_CHECK_IDS
-from .context import ContextError, ValidationContext
+from .context import ContextError, RepositoryContentSource, ValidationContext
 from .gate import (
     ValidationMode,
     ValidationRun,
@@ -17,6 +17,7 @@ from .gate import (
     certification_diagnostics,
     inspect_repository_state,
     resolve_mode,
+    working_tree_state_diagnostics,
 )
 from .registry import Check, validate_registry
 
@@ -77,11 +78,11 @@ def select_checks(
 
 
 def execute_checks(
-    context: ValidationContext,
+    root: Path,
     mode: ValidationMode,
     checks: Sequence[Check],
 ) -> ValidationRun:
-    repository = inspect_repository_state(context.root)
+    repository = inspect_repository_state(root)
     preconditions = (
         certification_diagnostics(repository)
         if mode == ValidationMode.CERTIFY
@@ -89,6 +90,27 @@ def execute_checks(
     )
     if preconditions:
         return build_run(mode, repository, (), (), preconditions)
+
+    if mode != ValidationMode.CERTIFY:
+        local_state_diagnostics = working_tree_state_diagnostics(root)
+        if local_state_diagnostics:
+            return build_run(mode, repository, (), (), local_state_diagnostics)
+
+    if mode == ValidationMode.CERTIFY:
+        assert repository.revision is not None
+        source = RepositoryContentSource.REVISION
+        content_revision = repository.revision
+    else:
+        source = RepositoryContentSource.WORKING_TREE
+        content_revision = None
+
+    context = ValidationContext.create(root, source, content_revision)
+    repository = type(repository)(
+        revision=repository.revision,
+        clean=repository.clean,
+        content_source=source,
+        content_revision=content_revision,
+    )
     diagnostics = tuple(check.function(context) for check in checks)
     return build_run(mode, repository, checks, diagnostics)
 
@@ -139,8 +161,7 @@ def main(root: Path, argv: Sequence[str] | None = None) -> int:
 
         mode = resolve_mode(args.mode, args.check_ids)
         checks = select_checks(mode, args.check_ids, registry)
-        context = ValidationContext.create(root)
-        run = execute_checks(context, mode, checks)
+        run = execute_checks(root, mode, checks)
         if args.format == "json":
             render_json(run)
         else:

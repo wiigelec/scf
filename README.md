@@ -84,9 +84,16 @@ Run the read-only development validation gate from the repository root:
 ./scripts/validate
 ```
 
-The default complete-work mode validates the full resulting repository state.
-That state includes tracked JSON and new untracked, non-ignored JSON files. JSON parsing rejects non-standard constants such as `NaN` and `Infinity`, and governed file declarations require regular files.
-Focused checks and clean-revision certification use the same entrypoint:
+The default complete-work mode validates the effective working-tree filesystem
+view: tracked files at their current paths plus untracked, non-ignored JSON files.
+Deleted paths are absent, rename destinations replace their sources, ignored files
+are excluded, unresolved conflicts fail before checks run, and symlinks are not
+followed outside the repository. Focused mode uses the same state source for only
+the selected checks. Certification instead validates the exact current `HEAD` tree
+and requires a clean index and worktree; unrelated local content is not substituted
+for committed content. JSON parsing rejects non-standard constants such as `NaN`
+and `Infinity`, and governed file declarations require regular files.
+Focused checks and exact-revision certification use the same entrypoint:
 
 ```sh
 ./scripts/validate --check SCF-JSON-001

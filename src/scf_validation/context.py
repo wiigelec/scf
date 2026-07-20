@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from enum import Enum
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -28,6 +29,13 @@ class DuplicateKeyError(ValueError):
         self.key = key
 
 
+class RepositoryContentSource(str, Enum):
+    """Authoritative repository content presented to validation checks."""
+
+    WORKING_TREE = "working-tree"
+    REVISION = "revision"
+
+
 class ValidationContext:
     REQUIRED_SENTINELS = (
         ".git",
@@ -36,33 +44,53 @@ class ValidationContext:
         "planning/BOOTSTRAP-TO-DEVELOPMENT-ROADMAP.md",
     )
 
-    def __init__(self, root: Path):
+    def __init__(
+        self,
+        root: Path,
+        source: RepositoryContentSource = RepositoryContentSource.WORKING_TREE,
+        revision: str | None = None,
+    ):
         self.root = root.resolve()
+        self.source = source
+        self.revision = revision
+        if source == RepositoryContentSource.REVISION and not revision:
+            raise ContextError("revision content source requires an exact revision")
         self._bytes_cache: dict[str, bytes] = {}
         self._json_cache: dict[str, Any] = {}
         self._json_paths_cache: tuple[str, ...] | None = None
 
     @classmethod
-    def create(cls, root: Path) -> "ValidationContext":
+    def create(
+        cls,
+        root: Path,
+        source: RepositoryContentSource = RepositoryContentSource.WORKING_TREE,
+        revision: str | None = None,
+    ) -> "ValidationContext":
         resolved = root.resolve()
-        missing = [item for item in cls.REQUIRED_SENTINELS if not (resolved / item).exists()]
+        if not (resolved / ".git").exists():
+            raise ContextError(
+                "current directory is not the SCF repository root; missing: .git"
+            )
+
+        context = cls(resolved, source, revision)
+        content_sentinels = tuple(
+            item for item in cls.REQUIRED_SENTINELS if item != ".git"
+        )
+        missing = [
+            item for item in content_sentinels
+            if not context.path_exists(item)
+        ]
         if missing:
             raise ContextError(
-                "current directory is not the SCF repository root; missing: "
+                f"{source.value} repository content is missing required SCF files: "
                 + ", ".join(missing)
             )
-        return cls(resolved)
+        return context
 
-    def json_paths(self) -> tuple[str, ...]:
-        """Return tracked and untracked, non-ignored JSON paths."""
-        if self._json_paths_cache is not None:
-            return self._json_paths_cache
+    def _git_bytes(self, arguments: list[str], failure: str) -> bytes:
         try:
             result = subprocess.run(
-                [
-                    "git", "ls-files", "-z", "--cached", "--others",
-                    "--exclude-standard", "--", "*.json",
-                ],
+                ["git", *arguments],
                 cwd=self.root,
                 check=True,
                 stdout=subprocess.PIPE,
@@ -72,12 +100,89 @@ class ValidationContext:
             raise ContextError("git is required but was not found") from exc
         except subprocess.CalledProcessError as exc:
             detail = exc.stderr.decode("utf-8", "replace").strip()
-            raise ContextError(f"unable to enumerate working-tree JSON files: {detail}") from exc
+            raise ContextError(f"{failure}: {detail}") from exc
+        return result.stdout
+
+    def path_exists(self, repository_path: str) -> bool:
+        if self.source == RepositoryContentSource.WORKING_TREE:
+            return self.safe_path(repository_path).exists()
+        assert self.revision is not None
+        result = subprocess.run(
+            ["git", "cat-file", "-e", f"{self.revision}:{repository_path}"],
+            cwd=self.root,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode == 0:
+            return True
+        if result.returncode in (1, 128):
+            return False
+        detail = result.stderr.decode("utf-8", "replace").strip()
+        raise ContextError(f"unable to inspect revision path {repository_path}: {detail}")
+
+    def is_regular_file(self, repository_path: str) -> bool:
+        """Return whether the selected source contains a regular file at the path."""
+        if self.source == RepositoryContentSource.WORKING_TREE:
+            target = self.root / repository_path
+            try:
+                target.relative_to(self.root)
+            except ValueError as exc:
+                raise InputProblem(
+                    "SCF-INPUT-PATH-001",
+                    "repository path escapes the repository root",
+                    repository_path,
+                ) from exc
+            return target.exists() and target.is_file() and not target.is_symlink()
+
+        assert self.revision is not None
+        output = self._git_bytes(
+            ["ls-tree", "-z", self.revision, "--", repository_path],
+            f"unable to inspect revision file type {repository_path}",
+        )
+        if not output:
+            return False
+        record = output.split(b"\0", 1)[0]
+        metadata, _, returned_path = record.partition(b"\t")
+        parts = metadata.split()
+        return (
+            len(parts) >= 3
+            and parts[0] in (b"100644", b"100755")
+            and returned_path.decode("utf-8", "surrogateescape") == repository_path
+        )
+
+    def json_paths(self) -> tuple[str, ...]:
+        """Return tracked and untracked, non-ignored JSON paths."""
+        if self._json_paths_cache is not None:
+            return self._json_paths_cache
+        if self.source == RepositoryContentSource.WORKING_TREE:
+            output = self._git_bytes(
+                [
+                    "ls-files", "-z", "--cached", "--others",
+                    "--exclude-standard", "--", "*.json",
+                ],
+                "unable to enumerate working-tree JSON files",
+            )
+        else:
+            assert self.revision is not None
+            output = self._git_bytes(
+                ["ls-tree", "-rz", "--name-only", self.revision, "--", "*.json"],
+                "unable to enumerate revision JSON files",
+            )
         paths = {
             part.decode("utf-8", "surrogateescape")
-            for part in result.stdout.split(b"\0")
+            for part in output.split(b"\0")
             if part
         }
+        if self.source == RepositoryContentSource.WORKING_TREE:
+            paths = {
+                repository_path
+                for repository_path in paths
+                if (
+                    (self.root / repository_path).exists()
+                    or (self.root / repository_path).is_symlink()
+                )
+            }
         self._json_paths_cache = tuple(sorted(paths))
         return self._json_paths_cache
 
@@ -115,17 +220,34 @@ class ValidationContext:
     def read_bytes(self, repository_path: str) -> bytes:
         if repository_path in self._bytes_cache:
             return self._bytes_cache[repository_path]
-        target = self.safe_path(repository_path)
-        try:
-            data = target.read_bytes()
-        except FileNotFoundError as exc:
-            raise InputProblem("SCF-REPO-002", "required file is missing", repository_path) from exc
-        except OSError as exc:
-            raise InputProblem(
-                "SCF-REPO-003",
-                f"unable to read file: {exc}",
-                repository_path,
-            ) from exc
+        if self.source == RepositoryContentSource.REVISION:
+            assert self.revision is not None
+            try:
+                data = self._git_bytes(
+                    ["show", f"{self.revision}:{repository_path}"],
+                    f"unable to read revision file {repository_path}",
+                )
+            except ContextError as exc:
+                raise InputProblem(
+                    "SCF-REPO-002",
+                    "required file is missing or unreadable in validated revision",
+                    repository_path,
+                ) from exc
+        else:
+            target = self.safe_path(repository_path)
+            try:
+                if target.is_symlink():
+                    data = target.readlink().as_posix().encode("utf-8")
+                else:
+                    data = target.read_bytes()
+            except FileNotFoundError as exc:
+                raise InputProblem("SCF-REPO-002", "required file is missing", repository_path) from exc
+            except OSError as exc:
+                raise InputProblem(
+                    "SCF-REPO-003",
+                    f"unable to read file: {exc}",
+                    repository_path,
+                ) from exc
         self._bytes_cache[repository_path] = data
         return data
 

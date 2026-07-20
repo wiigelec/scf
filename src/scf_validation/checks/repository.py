@@ -38,11 +38,11 @@ def check_repository(context: ValidationContext) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     for repository_path in REQUIRED_ARTIFACTS:
         try:
-            target = context.safe_path(repository_path)
+            exists = context.is_regular_file(repository_path)
         except InputProblem as problem:
             diagnostics.append(from_problem(problem))
             continue
-        if not target.is_file():
+        if not exists:
             diagnostics.append(
                 Diagnostic(
                     "SCF-REPO-MISSING",
@@ -116,11 +116,11 @@ def check_repository(context: ValidationContext) -> list[Diagnostic]:
             )
             continue
         try:
-            target = context.safe_path(output)
+            exists = context.is_regular_file(output)
         except InputProblem as problem:
             diagnostics.append(from_problem(problem))
             continue
-        if not target.is_file():
+        if not exists:
             diagnostics.append(
                 Diagnostic(
                     "SCF-BOOTSTRAP-OUTPUT",

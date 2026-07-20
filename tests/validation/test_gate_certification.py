@@ -60,6 +60,8 @@ class ValidationGateCertificationTests(unittest.TestCase):
         self.assertEqual("certify", payload["mode"])
         self.assertEqual(expected, payload["repository"]["revision"])
         self.assertTrue(payload["repository"]["clean"])
+        self.assertEqual("revision", payload["repository"]["content_source"])
+        self.assertEqual(expected, payload["repository"]["content_revision"])
         self.assertEqual(6, len(payload["checks"]))
 
     def test_dirty_repository_refuses_certification(self) -> None:
@@ -82,8 +84,33 @@ class ValidationGateCertificationTests(unittest.TestCase):
 
         self.assertEqual(0, status)
         self.assertEqual("working-tree", payload["repository"]["classification"])
+        self.assertEqual("working-tree", payload["repository"]["content_source"])
+        self.assertIsNone(payload["repository"]["content_revision"])
         self.assertEqual("pass", payload["outcome"])
         self.assertEqual(6, len(payload["checks"]))
+
+    def test_revision_context_ignores_unrelated_worktree_content(self) -> None:
+        from scf_validation.context import RepositoryContentSource, ValidationContext
+
+        expected = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo.root,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        ).stdout.strip()
+        committed = (self.repo.root / "README.md").read_bytes()
+        self.repo.write("README.md", "# unrelated local change\n")
+        self.repo.write("untracked.json", "{not valid json")
+
+        context = ValidationContext.create(
+            self.repo.root,
+            RepositoryContentSource.REVISION,
+            expected,
+        )
+
+        self.assertEqual(committed, context.read_bytes("README.md"))
+        self.assertNotIn("untracked.json", context.json_paths())
 
     def test_machine_output_has_deterministic_shape(self) -> None:
         status, payload = self.invoke_json("--check", "SCF-JSON-001")
