@@ -230,19 +230,25 @@ official governed development process. This document supplies the issue-based
 planning records used within that process and must not duplicate live issue,
 pull-request, commit, validation, or CI state.
 
-## Relationship to session restoration
+## Relationship to session initialization and interaction
 
 The designated issue body, `## Governed detailed scope` comment, and
 `## Governed work breakdown and patch plan` comment are durable inputs to
-`docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md`.
+`docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md`, whose retained path now
+defines governed development-session initialization and interaction.
 
-Restoration reads those records to recover the bounded objective, accepted base,
-working branch, active patch, expected changed-file boundary, planned commit
-subject, completed work, remaining work, and next authorized action. It does not
-edit the records or duplicate their live state in a repository-local registry.
+A new session reads those records during remote orientation to recover the
+bounded objective, accepted base, working branch, patch sequence, expected
+changed-file boundary, planned commit subject, validation plan, and completion
+evidence. It then interrogates the actual local tree before any local mutation.
 
-When a planned patch is delivered as a guarded `user-run-python-script`, the
-planning record may identify the expected script execution contract. The script
-and its terminal transcript remain transient or user-supplied local-only evidence;
-the resulting commit becomes remote evidence only after its exact SHA is published
-and independently resolvable.
+When a planned operation is performed through the guarded downloadable Python
+script transport protocol, the planning record may identify the expected script
+execution contract. The script and its single result artifact remain transient
+or user-supplied local-only evidence. The resulting commit or remote GitHub
+mutation becomes independently verifiable only after its exact identity is
+published and resolved.
+
+All governed local and remote mutations, including planning-record edits, use
+the guarded script transport protocol. Read-only chatbot access may be used for
+orientation and review.

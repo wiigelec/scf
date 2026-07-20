@@ -1,301 +1,337 @@
-# Governed Development Session Restoration
+# Governed Development Session Initialization and Interaction
 
 ## Status, role, and governing parent
 
-This document defines the official read-only restoration protocol for governed
-Session Continuity Framework (SCF) development context across independent
-assistant-user sessions.
+This document defines the official initialization and interaction standard for
+governed Session Continuity Framework (SCF) development across independent
+chatbot-user sessions.
 
 It is a development-process support specification governed by the accepted SCF
-authority hierarchy and the
-`docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md` process. It applies the bounded
-planning convention in `docs/GOVERNED-ISSUE-PLANNING.md`. It does not create
-product authority, change lifecycle state, authorize successor work, or replace
-the governing issue and its designated planning records.
+authority hierarchy and `docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md`. It
+applies the bounded planning convention in `docs/GOVERNED-ISSUE-PLANNING.md`.
+It does not create product authority, replace durable Git or GitHub evidence,
+authorize unrelated work, or collapse distinct authorization boundaries.
 
-Restoration exists so a new session can identify the smallest authoritative
-context sufficient to continue a bounded work item without relying on prior chat
+Initialization exists so a new session can establish sufficient remote and
+local context to continue one bounded work item without relying on prior chat
 history or model memory.
 
-## Restoration properties
+## Core properties
 
-A conforming restoration is:
+A conforming session interaction is:
 
-- **read-only**: it observes evidence but performs no repository, GitHub, planning,
-  acceptance, merge, closure, or lifecycle mutation;
 - **authority-first**: accepted repository authority and durable governed records
-  outrank transient conversation state;
-- **identity-preserving**: exact document, branch, commit, issue, comment, pull
-  request, CI, and supplied-evidence identities are recorded when known;
-- **evidence-separated**: remotely verifiable, repository-local, and user-supplied
-  local-only evidence remain distinguishable;
-- **bounded**: it retrieves the smallest authoritative context sufficient for the
-  active task instead of recursively loading unrelated repository content;
-- **non-inventive**: missing required context produces an explicit underspecified
-  result rather than architectural invention or undocumented inference;
-- **deterministic**: equivalent inputs produce the same machine-readable result
-  ordering and status;
-- **action-bounded**: it identifies only the next action authorized by current
-  authority and lifecycle evidence.
+  outrank transient conversation context;
+- **remote-oriented**: the chatbot may use read-only remote access to identify the
+  repository, accepted process, governing issue, planning records, pull request,
+  and likely next bounded action;
+- **local-state explicit**: the actual local Git tree is interrogated before local
+  mutation, and unknown local state is never inferred from GitHub;
+- **script-transported**: every governed local or remote mutation is performed
+  through a uniquely named, guarded, agent-developed Python script;
+- **user-executed**: the user runs the supplied script from the repository root;
+- **result-returned**: each script execution produces exactly one uniquely named
+  result file in `~/Downloads`, which the user uploads to the chatbot;
+- **bounded**: each script declares and enforces its operation, repository,
+  revision, file, and publication boundaries;
+- **non-overwriting**: scripts and result artifacts use unique names and are never
+  silently overwritten;
+- **observable**: scripts print immediate, flushed progress and periodic heartbeat
+  messages during long-running work;
+- **review-gated**: no successor operation assumes a prior script succeeded until
+  the returned result has been reviewed;
+- **authorization-separated**: interrogation, mutation, validation, commit, push,
+  pull-request, issue, review, merge, and closure permissions remain distinct.
 
-## Authority and discovery order
+## Remote session orientation
 
-Restoration proceeds in this order:
+Before requesting local mutation, the chatbot should identify the smallest
+durable remote context needed for the bounded task:
 
-1. identify the repository and supplied development branch;
-2. identify the observed repository revision and working-tree classification;
-3. discover the accepted SCF authority root and applicable authority chain;
-4. discover the official governed development process;
-5. identify the governing issue;
-6. identify exactly one designated `## Governed detailed scope` comment;
-7. identify exactly one designated
-   `## Governed work breakdown and patch plan` comment;
-8. verify strict accepted dependencies when dependency correctness matters;
-9. inspect the branch commit topology and changed-file boundary;
-10. identify validation, certification, pull-request, CI, review, merge, and issue
-    state evidence;
-11. incorporate explicitly supplied local-only evidence;
-12. determine the lifecycle frontier and next authorized action.
+1. repository identity and purpose;
+2. accepted authority root and official development process;
+3. governing issue and its high-level scope;
+4. exactly one `## Governed detailed scope` comment;
+5. exactly one `## Governed work breakdown and patch plan` comment;
+6. accepted base and planned working branch;
+7. relevant dependency, pull-request, CI, review, merge, and issue state;
+8. the next bounded local fact or operation required.
 
-A conflict between durable sources is reported as unresolved. Restoration must not
-silently select whichever source is most convenient.
+Read-only connector access may be used for orientation and review. Governed
+mutation may not be performed through a direct chatbot connector write.
 
-## Evidence classes
+Remote orientation must not claim knowledge of the user's current branch,
+`HEAD`, worktree, local commits, untracked files, or local divergence.
 
-### Remote evidence
+## Local-tree initialization
 
-Remote evidence is independently resolvable through an accepted remote service,
-including repository identity, remotely visible branches and commits, issue and
-planning records, pull requests, CI runs, merge commits, and issue closure state.
+The first local interaction for a new or uncertain checkout is a read-only
+guarded interrogation script.
 
-Remote evidence is not automatically semantic acceptance. Passing CI remains
-technical evidence for an exact revision.
+The interrogation must establish, when applicable:
 
-### Repository-local evidence
+- repository root and canonical `origin`;
+- current branch or detached-HEAD state;
+- exact `HEAD`;
+- accepted base availability and merge-base relationship;
+- configured upstream;
+- ahead/behind relationship;
+- staged, unstaged, untracked, and conflicted files;
+- local commits since the accepted base;
+- changed-file and diff summaries;
+- remote `main` identity;
+- governing issue and designated planning-comment identities;
+- blockers to the next planned mutation.
 
-Repository-local evidence is observable from the supplied local tree, including:
+A clean tree is not universally required, but any non-clean state must be
+explicitly understood and included in the preconditions of the next script.
 
-- repository root and configured remote identity;
-- current branch;
-- `HEAD`, merge base, parent topology, and commit subjects;
-- tracked and untracked working-tree state;
-- changed-file inventory and diff;
-- repository documents, schemas, validators, tests, manifests, and registrations;
-- locally created commits that may not yet be remotely visible.
+Interrogation performs no local or remote mutation.
 
-A local commit remains local-only until its exact SHA is independently resolvable
-through the remote repository.
+## Definitive transport protocol
 
-### User-supplied local-only evidence
+The guarded agent-developed Python script is the exclusive execution boundary
+for governed local repository mutations and remote GitHub mutations.
 
-User-supplied local-only evidence includes terminal transcripts, generated artifact
-identities, validation output, certification output, and other observations that a
-new session cannot independently obtain from the remote repository.
+The chatbot:
 
-Such evidence must record its source or reference and must not be relabeled as
-remote evidence. A transcript may support a claim that a command ran, but only the
-content actually shown by the transcript is recoverable.
+1. designs one bounded operation;
+2. creates a uniquely named Python script for download;
+3. supplies exactly one literal command block;
+4. reviews the returned result before preparing another script.
 
-### Transient conversation context
+The user:
 
-Chat history and model memory may help locate durable evidence but are not durable
-authority or completion evidence. Restoration must succeed without prior
-conversation history when the required durable and explicitly supplied evidence is
-available.
+1. retains the script in `~/Downloads`;
+2. starts from the repository root;
+3. runs the single supplied command;
+4. observes terminal progress;
+5. uploads the script's single result file to the chatbot;
+6. does not rerun or improvise recovery after a failure unless directed through
+   a separately identified script.
 
-## Required identity fields
+The script invokes standard `git`, `gh`, Python, and repository-native commands
+as needed. The transport protocol is not a replacement for Git or GitHub; it is
+the controlled interaction boundary through which those tools are used.
 
-A restoration result records the following fields when applicable:
+## User-facing command contract
 
-- repository full name and canonical remote;
-- supplied branch and observed branch;
-- accepted base revision, observed `HEAD`, and merge base;
-- working-tree classification;
-- authority-root path and revision identity;
-- applicable authority-document paths and identities;
-- official-process path and identity;
-- governing issue number and state;
-- designated detailed-scope comment identity;
-- designated work-breakdown comment identity;
-- strict dependency identities and accepted evidence;
-- planned patch, expected files, and planned commit subject;
-- observed commits, changed files, and branch-local evidence;
-- validation and certification commands, outcomes, and tested revisions;
-- pull request, CI runs, reviews, merge commit, and closure state;
-- local-only evidence references;
-- unresolved requirements;
-- lifecycle frontier;
-- next authorized action.
+The user-facing command is exactly one literal command of the form:
 
-An unknown field remains unknown. It is not populated from a guess.
+```sh
+python ~/Downloads/<unique-script-name>.py
+```
 
-## Lifecycle frontier
+The command:
 
-The lifecycle frontier is the furthest state supported by current evidence. States
-remain non-equivalent and may include:
+- is run while the shell is already at the repository root;
+- contains no `cd`;
+- contains no shell variable assignment or expansion;
+- contains no heredoc;
+- contains no command substitution;
+- contains no pipe, redirection, semicolon, `&&`, or other chained operation;
+- is safe to copy directly into `zsh`.
 
-- planning prepared;
-- patch execution pending;
-- patch execution failed;
-- patch partially applied;
-- patch recovered;
-- local patch committed;
-- branch locally validated;
-- branch clean-revision certified;
-- branch pushed;
-- pull request open;
-- exact PR-head CI passed;
-- semantic review complete;
-- exact revision accepted;
-- merged;
-- governing issue closed.
+Every script filename must be unique within the development workflow. A
+replacement or corrected script receives a new filename even when the earlier
+script was never run.
 
-Restoration records completed states, remaining states, and the next authorized
-action. It must not infer acceptance from validation, CI, merge, or issue state
-alone.
+## Script guard contract
 
-## Chat-developed local execution artifacts
+Before mutation, a script verifies all preconditions material to its operation,
+which may include:
 
-### Guarded user-run Python scripts
-
-Chat-developed repository work may be delivered as a guarded Python script for the
-user to run against the local Git tree. The execution method identifier is:
-
-`user-run-python-script`
-
-The script is a transient execution vehicle. It is not accepted repository state
-by default, and its existence is not proof that it ran.
-
-For each script, restoration records when available:
-
-- filename;
-- SHA-256 digest;
-- exact invocation command;
-- expected repository identity;
+- repository root and `origin` identity;
 - expected branch;
-- accepted base and expected starting `HEAD`;
-- expected clean or otherwise specified working-tree state;
-- intended changed-file boundary;
-- planned tests and validation commands;
-- planned commit subject;
-- whether push or pull-request creation is prohibited or included;
-- supplied transcript or evidence reference.
+- exact starting `HEAD`;
+- accepted base and merge-base relationship;
+- expected upstream or remote branch state;
+- clean or specifically permitted worktree state;
+- expected existing files, content markers, or digests;
+- absence of unrelated staged, unstaged, untracked, or conflicted paths;
+- uniqueness and nonexistence of target branches, comments, pull requests, or
+  other remote objects;
+- explicit inclusion or exclusion of commit, push, issue, pull-request, review,
+  merge, and closure actions.
 
-### Script execution states
+A guard failure stops before the guarded mutation. The script records the
+observed state and required correction in its result artifact.
 
-Script state is one of:
+## Mutation boundary
 
-- `pending`: the artifact exists or was supplied, but no execution evidence exists;
-- `failed`: execution stopped with an error and completion was not established;
-- `partially-applied`: execution changed local state before stopping;
-- `recovered`: a separately identified recovery action repaired or completed work
-  after a failed or partial attempt;
-- `completed`: supplied evidence establishes the intended terminal state.
+Each script declares:
 
-A failed script, repository effects from that failure, a recovery script, and the
-final successful execution remain separately identifiable. Restoration must not
-collapse them into a single successful event.
+- governing issue;
+- operation identifier;
+- expected starting state;
+- intended local file or Git-object boundary;
+- intended remote-object boundary;
+- commands it may invoke;
+- validations it will run;
+- whether it may stage, commit, fetch, switch branches, push, create or update a
+  pull request, edit an issue, review, merge, or close;
+- intended terminal state.
 
-### Transcript evidence
+Permission for one boundary does not imply permission for another. In
+particular, permission to edit does not imply permission to commit, and
+permission to commit does not imply permission to push.
 
-A user-supplied terminal transcript is local-only evidence. It may establish the
-invocation used, guards, files changed, tests, validation, command outcomes,
-resulting commit SHA, cleanliness, and whether publication occurred.
+## Terminal progress and heartbeat
 
-Absence of transcript evidence leaves execution pending or underspecified. A script
-body alone cannot establish execution.
+Terminal output is the user-facing execution display.
 
-### Local and remote visibility
+A script must:
 
-A transcript may establish a resulting local commit SHA. That commit remains
-local-only evidence until the exact SHA is remotely resolvable.
+- identify itself and its intended operation immediately;
+- print numbered or otherwise clear phases;
+- print meaningful progress before and after each material step;
+- flush each progress message immediately;
+- report the observed state relevant to guard decisions;
+- print periodic heartbeat messages during long-running subprocesses;
+- clearly distinguish success, guard failure, failure before mutation, partial
+  application, and validation failure after mutation;
+- end with the exact result-file path and an instruction to upload it.
 
-Push, pull-request creation, CI execution, semantic review, acceptance, merge, and
-issue closure are separate facts. Restoration reports each independently.
+Heartbeat output must not replace captured command output in the result file.
+A supervisory loop may capture subprocess stdout and stderr while printing
+elapsed-time messages to the terminal.
 
-### Exact next command
+## Single result artifact
 
-When a guarded script is pending and its preconditions remain satisfied, restoration
-may identify its exact invocation as the next authorized action, for example:
+Each script execution produces exactly one uniquely named result file in
+`~/Downloads`.
 
-`python ~/Downloads/scf_issue_11_patch_1.py`
+The result filename is derived from the unique script filename, for example:
 
-This is identification of an already authorized bounded action, not authorization
-for broader work.
+```text
+scf_issue_24_patch_1_20260720T120000Z_a1b2c3.result.json
+```
 
-## Complete restoration result
+The script must refuse to overwrite an existing result file. It must not create
+separate log, patch, transcript, or diagnostic artifacts.
 
-A result is `complete` for the active task only when the evidence necessary to
-identify the repository and branch, authority chain, official process, governing
-issue and designated planning records, accepted base and observed revision, active
-patch, completed and remaining work, lifecycle frontier, evidence boundaries, and
-the exact next authorized action is available.
+The single result file contains enough structured evidence to determine:
 
-Completeness is task-relative. It does not mean the governing issue is complete.
+- schema version;
+- script filename, digest, and operation;
+- repository root and remote identity;
+- starting and ending branch, `HEAD`, upstream, and worktree state;
+- intended and observed local and remote mutation boundaries;
+- commands, start and finish times, exit codes, stdout, and stderr;
+- files or remote objects created, changed, deleted, or left unexpected;
+- validation commands and outcomes;
+- commit, push, issue, pull-request, review, merge, and closure attempts and
+  verified results;
+- diagnostics;
+- whether mutation was attempted and completed;
+- the safest next interaction.
 
-## Underspecified restoration result
+Credentials and authentication secrets must not be copied into the result.
+Where a command emits credentials or sensitive tokens, the script must redact
+them before writing the result.
 
-A result is `underspecified` when any required identity or evidence for the active
-task cannot be resolved. It records resolved identities, missing or conflicting
-requirements, why each matters, the smallest exact evidence needed, and the last
-lifecycle state actually supported.
+## Execution-state distinctions
 
-Examples include missing authority, missing or duplicate designated planning
-comments, branch or revision mismatch, script reported as run without a transcript,
-a transcript naming an unavailable commit, stale certification, or stale CI.
+At minimum, a result distinguishes:
 
-Underspecified is not failure, completion, or permission to invent missing
-architecture. It is an explicit bounded result.
+- `guard-failed`: a required precondition failed before mutation;
+- `failed-before-mutation`: execution failed before the guarded mutation began;
+- `partial-local-mutation`: local state may have changed before failure;
+- `partial-remote-mutation`: one or more remote mutations completed before
+  failure;
+- `mutation-completed-validation-failed`: intended mutation completed but
+  required validation did not pass;
+- `completed`: the intended non-commit operation and its verification completed;
+- `completed-and-committed`: the intended commit was created and verified;
+- `completed-and-published`: the intended remote publication was completed and
+  verified.
 
-## No-mutation boundary
+A failed or partial attempt, recovery script, correction script, and later
+successful attempt remain separately identifiable. A later success does not
+erase earlier execution evidence.
 
-Restoration must not create, edit, or delete repository files; stage or commit
-changes; alter branches; push; create or edit issues, comments, checklists, pull
-requests, or reviews; trigger CI; accept, merge, close, reopen, or authorize work;
-or write a repository-local lifecycle or planning registry.
+## Validation and inspection
 
-A future executable restoration entrypoint must inspect before-and-after repository
-state and demonstrate that its own operation caused no mutation.
+After a bounded file mutation, the script normally captures:
 
-## Deterministic machine-readable result
+- `git status --short`;
+- changed-file inventory;
+- `git diff --check`;
+- diff statistics and relevant diff content;
+- focused tests;
+- required repository validation.
 
-Where machine-readable output is implemented, it must use an explicit schema
-version, stable field names and deterministic ordering, distinguish `complete` and
-`underspecified`, identify evidence classes, preserve exact identities, list
-unresolved requirements, identify the lifecycle frontier and next action, and
-avoid credentials or conversation memory.
+Unexpected changed paths or failed required checks prevent an included commit
+unless the governing plan explicitly defines another safe terminal state.
 
-The result is a retrieval record, not a durable copy of live lifecycle state.
+Long validation runs must provide heartbeat output. Complete command output is
+stored in the one result artifact.
 
-## Representative recovery cases
+## Commit, push, and remote GitHub operations
 
-Validation must cover at least:
+Commit, push, and remote GitHub mutations use the same transport protocol.
 
-1. a complete restoration with exact next action;
-2. a pending guarded Python script;
-3. a failed script followed by a separately identified recovery script;
-4. a completed script producing a local-only commit;
-5. the same commit after it becomes remotely visible;
-6. missing authority;
-7. missing or duplicate planning records;
-8. branch or revision mismatch;
-9. stale certification or CI evidence;
-10. proof that restoration performs no mutation;
-11. deterministic repeated output.
+A commit script verifies the exact reviewed changed-file boundary, validation
+state, starting `HEAD`, planned commit subject, and absence of unrelated
+changes. It stages only intended paths, creates the commit, records the exact
+SHA, and verifies the post-commit tree.
 
-## Failure and incomplete-evidence behavior
+A publication script verifies the exact reviewed branch head, worktree,
+remote, upstream, validation evidence, and explicit publication authority. It
+uses standard `git` commands to push and standard `gh` commands for issue,
+pull-request, review, merge, and closure operations.
 
-Tool failure, inaccessible remote evidence, malformed supplied evidence, and
-ambiguous identities produce explicit diagnostics. They must not be silently
-retried until a convenient result appears.
+Remote success is verified by reading the resulting remote object. Command exit
+status alone is not sufficient verification.
 
-When required evidence is unavailable, restoration states exactly what is missing
-and returns `underspecified`. Optional omissions are recorded without converting
-the result into a false pass.
+## Failure and recovery behavior
+
+A script must attempt to write its single result file even when execution
+fails, provided doing so is safe.
+
+Automatic retry must not conceal deterministic failure. A failed mutation is
+not silently retried until it appears successful.
+
+When partial application is possible, terminal output must instruct the user
+not to rerun the script. The chatbot reviews the returned result and prepares a
+new uniquely named recovery script with guards based on the observed state.
+
+Manual correction by the user is outside the standard governed mutation path
+unless the governing plan explicitly authorizes instruction-only work.
+
+## Evidence and authority boundary
+
+The script and result artifact are transient execution evidence. They are not
+accepted repository authority, durable planning records, or proof of semantic
+acceptance.
+
+Git and GitHub retain their normal roles:
+
+- accepted authority and process live in accepted repository revisions;
+- issue bodies and designated comments govern scope and plans;
+- commits and pull requests provide implementation evidence;
+- repository validation and CI provide mechanical evidence;
+- review and explicit acceptance provide semantic evidence;
+- merge and issue closure remain separate lifecycle facts.
+
+A local commit remains local-only until its exact SHA is remotely resolvable.
+A result artifact may report a remote mutation, but the chatbot should verify
+important remote state through read-only access when available.
 
 ## Success boundary
 
-This protocol is satisfied when a new independent session can recover the bounded
-development context, distinguish all evidence classes, identify chat-developed
-local execution artifacts, report the lifecycle frontier, and state the exact next
-authorized action without relying on prior chat history and without mutating state.
+This standard is satisfied when a new independent chatbot-user session can:
+
+1. orient itself to the bounded remote work from durable evidence;
+2. interrogate the actual local checkout without mutation;
+3. route every governed local and remote mutation through one unique guarded
+   Python script;
+4. give the user one literal command run from the repository root;
+5. provide clear terminal progress and heartbeat output;
+6. receive exactly one unique non-overwriting result file;
+7. distinguish failure, partial application, validation, commit, and publication
+   states;
+8. review the returned evidence before authorizing or designing the next
+   operation;
+9. proceed without relying on prior chat history or inventing unknown local
+   state.
