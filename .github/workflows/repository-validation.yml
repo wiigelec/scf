@@ -69,7 +69,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./scripts/validate --mode complete --format json | tee validation-result.json
+
+          result_file="${RUNNER_TEMP}/validation-result.json"
+          ./scripts/validate --mode complete --format json | tee "$result_file"
+          cp "$result_file" validation-result.json
 
       - name: Record validation result
         if: always()

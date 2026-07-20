@@ -192,9 +192,12 @@ class ValidationTests(unittest.TestCase):
         for check in REGISTERED_CHECKS:
             self.assertEqual([], check.function(context), check.check_id)
 
-    def test_untracked_json_is_outside_default_scope(self) -> None:
+    def test_untracked_nonignored_json_is_validated(self) -> None:
         self.repo.write("untracked.json", "{bad")
-        self.assertEqual([], check_json_files(self.repo.context()))
+        self.assertIn(
+            "SCF-JSON-SYNTAX",
+            self.ids(check_json_files(self.repo.context())),
+        )
 
     def test_working_tree_edit_is_validated(self) -> None:
         self.repo.write("authority/core/manifest.json", "{bad")

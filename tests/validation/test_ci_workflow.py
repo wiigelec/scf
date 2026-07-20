@@ -59,7 +59,12 @@ class ContinuousIntegrationWorkflowTests(unittest.TestCase):
             "- name: Run complete repository validation", 1
         )[1].split("- name: Record validation result", 1)[0]
         self.assertIn("set -euo pipefail", complete_step)
-        self.assertIn("| tee validation-result.json", complete_step)
+        self.assertIn(
+            'result_file="${RUNNER_TEMP}/validation-result.json"',
+            complete_step,
+        )
+        self.assertIn('| tee "$result_file"', complete_step)
+        self.assertIn('cp "$result_file" validation-result.json', complete_step)
         self.assertNotIn("continue-on-error", complete_step)
 
     def test_evidence_is_bound_to_tested_sha(self) -> None:

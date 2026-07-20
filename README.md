@@ -85,6 +85,7 @@ Run the read-only development validation gate from the repository root:
 ```
 
 The default complete-work mode validates the full resulting repository state.
+That state includes tracked JSON and new untracked, non-ignored JSON files. JSON parsing rejects non-standard constants such as `NaN` and `Infinity`, and governed file declarations require regular files.
 Focused checks and clean-revision certification use the same entrypoint:
 
 ```sh

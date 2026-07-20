@@ -63,24 +63,158 @@ def _instance_type(value: Any) -> str:
     return type(value).__name__
 
 
-def _validate_schema_definition(schema: Any, parts: list[str], diagnostics: list[Diagnostic]) -> None:
+def _schema_error(
+    diagnostics: list[Diagnostic],
+    location: str,
+    message: str,
+) -> None:
+    diagnostics.append(
+        diagnostic(
+            "SCF-LEVEL0-SCHEMA-DEFINITION",
+            message,
+            SCHEMA_PATH,
+            location,
+        )
+    )
+
+
+def _nonnegative_integer(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _validate_schema_definition(
+    schema: Any,
+    parts: list[str],
+    diagnostics: list[Diagnostic],
+) -> None:
     location = _schema_location(parts)
     if not isinstance(schema, dict):
-        diagnostics.append(diagnostic("SCF-LEVEL0-SCHEMA-DEFINITION", "schema node must be an object", SCHEMA_PATH, location))
+        _schema_error(diagnostics, location, "schema node must be an object")
         return
+
     for keyword in schema:
         if keyword not in _SUPPORTED_SCHEMA_KEYWORDS:
-            diagnostics.append(diagnostic("SCF-LEVEL0-SCHEMA-KEYWORD", f"unsupported schema keyword {keyword!r}", SCHEMA_PATH, location))
-    properties = schema.get("properties")
-    if properties is not None:
+            diagnostics.append(
+                diagnostic(
+                    "SCF-LEVEL0-SCHEMA-KEYWORD",
+                    f"unsupported schema keyword {keyword!r}",
+                    SCHEMA_PATH,
+                    location,
+                )
+            )
+
+    for keyword in ("$schema", "$id", "title", "description"):
+        if keyword in schema and not isinstance(schema[keyword], str):
+            _schema_error(
+                diagnostics,
+                f"{location}.{keyword}",
+                f"{keyword} must be a string",
+            )
+
+    supported_types = {
+        "object", "array", "string", "integer", "number", "boolean", "null",
+    }
+    if "type" in schema:
+        value = schema["type"]
+        if not isinstance(value, str) or value not in supported_types:
+            _schema_error(
+                diagnostics,
+                f"{location}.type",
+                "type must be one supported type string",
+            )
+
+    if "required" in schema:
+        required = schema["required"]
+        if (
+            not isinstance(required, list)
+            or any(not isinstance(item, str) for item in required)
+            or len(required) != len(set(required))
+        ):
+            _schema_error(
+                diagnostics,
+                f"{location}.required",
+                "required must be an array of unique strings",
+            )
+
+    if "properties" in schema:
+        properties = schema["properties"]
         if not isinstance(properties, dict):
-            diagnostics.append(diagnostic("SCF-LEVEL0-SCHEMA-DEFINITION", "properties must be an object", SCHEMA_PATH, f"{location}.properties"))
+            _schema_error(
+                diagnostics,
+                f"{location}.properties",
+                "properties must be an object",
+            )
         else:
             for name, subschema in properties.items():
-                _validate_schema_definition(subschema, parts + ["properties", str(name)], diagnostics)
-    items = schema.get("items")
-    if items is not None:
-        _validate_schema_definition(items, parts + ["items"], diagnostics)
+                _validate_schema_definition(
+                    subschema,
+                    parts + ["properties", str(name)],
+                    diagnostics,
+                )
+
+    if "additionalProperties" in schema:
+        additional = schema["additionalProperties"]
+        if isinstance(additional, dict):
+            _validate_schema_definition(
+                additional,
+                parts + ["additionalProperties"],
+                diagnostics,
+            )
+        elif not isinstance(additional, bool):
+            _schema_error(
+                diagnostics,
+                f"{location}.additionalProperties",
+                "additionalProperties must be a boolean or schema object",
+            )
+
+    if "enum" in schema:
+        enum = schema["enum"]
+        if not isinstance(enum, list) or not enum:
+            _schema_error(
+                diagnostics,
+                f"{location}.enum",
+                "enum must be a nonempty array",
+            )
+
+    if "pattern" in schema:
+        pattern = schema["pattern"]
+        if not isinstance(pattern, str):
+            _schema_error(
+                diagnostics,
+                f"{location}.pattern",
+                "pattern must be a string",
+            )
+        else:
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                _schema_error(
+                    diagnostics,
+                    f"{location}.pattern",
+                    f"pattern must be a valid regular expression: {exc}",
+                )
+
+    for keyword in ("minLength", "minItems"):
+        if keyword in schema and not _nonnegative_integer(schema[keyword]):
+            _schema_error(
+                diagnostics,
+                f"{location}.{keyword}",
+                f"{keyword} must be a nonnegative integer",
+            )
+
+    if "uniqueItems" in schema and not isinstance(schema["uniqueItems"], bool):
+        _schema_error(
+            diagnostics,
+            f"{location}.uniqueItems",
+            "uniqueItems must be a boolean",
+        )
+
+    if "items" in schema:
+        _validate_schema_definition(
+            schema["items"],
+            parts + ["items"],
+            diagnostics,
+        )
 
 
 def _matches_type(value: Any, expected: str) -> bool:
@@ -148,12 +282,15 @@ def _validate_instance(instance: Any, schema: dict[str, Any], path: str, diagnos
                     diagnostics.append(diagnostic("SCF-LEVEL0-SCHEMA-CONFORMANCE", f"{path} is missing required property {name!r}", AUTHORITY_PATH, f"{path}.{name}"))
         properties = schema.get("properties")
         if isinstance(properties, dict):
+            additional = schema.get("additionalProperties", True)
             for name, value in instance.items():
                 subschema = properties.get(name)
                 if isinstance(subschema, dict):
                     _validate_instance(value, subschema, f"{path}.{name}", diagnostics)
-                elif schema.get("additionalProperties") is False:
+                elif additional is False:
                     diagnostics.append(diagnostic("SCF-LEVEL0-SCHEMA-CONFORMANCE", f"{path} contains unexpected property {name!r}", AUTHORITY_PATH, f"{path}.{name}"))
+                elif isinstance(additional, dict):
+                    _validate_instance(value, additional, f"{path}.{name}", diagnostics)
 
 
 def _validate_checksum(
