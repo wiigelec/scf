@@ -19,6 +19,7 @@ from scf_governed_executor.core import (  # noqa: E402
     CommandTimeoutError,
     ResultConflictError,
     SchemaError,
+    TerminalProgress,
     load_operation,
     operation_digest,
     redact_text,
@@ -196,6 +197,21 @@ class SupervisionTests(unittest.TestCase):
                 phase="test",
             )
         self.assertTrue(any("heartbeat: test" in message for message in messages))
+
+
+class TerminalProgressTests(unittest.TestCase):
+    def test_numbered_phase_and_heartbeat_rendering(self) -> None:
+        progress = TerminalProgress(total=5)
+        with patch("builtins.print") as output:
+            progress.phase(4, "verifying remote state")
+            progress.check("remote revision matches")
+        rendered = [" ".join(str(part) for part in call.args) for call in output.call_args_list]
+        self.assertIn("Phase [4/5]: verifying remote state...", rendered)
+        self.assertIn("  ✓ remote revision matches", rendered)
+        self.assertEqual(
+            progress.heartbeat_phase("verifying remote state"),
+            "phase=[4/5] verifying remote state",
+        )
 
 
 class SchemaArtifactTests(unittest.TestCase):

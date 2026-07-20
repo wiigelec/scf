@@ -128,6 +128,7 @@ def publish_git_changes(
     publication: Mapping[str, Any],
     *,
     push_authorized: bool,
+    progress: Any | None = None,
 ) -> dict[str, Any]:
     validate_git_publication_inputs(
         inputs, expected_mutations, publication, push_authorized=push_authorized
@@ -270,6 +271,8 @@ def publish_git_changes(
             phase="push commit",
             timeout=120,
         )
+        if progress is not None:
+            progress.phase(4, "verifying remote state")
         remote_commit = git(
             "ls-remote",
             "--heads",
@@ -287,6 +290,11 @@ def publish_git_changes(
                 evidence=evidence,
                 mutation_observed=True,
             )
+        if progress is not None:
+            progress.check("remote revision matches created commit")
+    elif progress is not None:
+        progress.phase(4, "verifying resulting state")
+        progress.check("created commit matches the authorized mutation")
 
     evidence["verified"] = True
     evidence["commands"] = commands
