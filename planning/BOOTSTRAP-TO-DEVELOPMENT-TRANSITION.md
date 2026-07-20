@@ -5,20 +5,23 @@
 This document is a non-normative repository lifecycle record produced under
 GitHub Issue #12.
 
-It assesses the accepted repository state at
-`844c096c21b77d8a83903d93ff4b5be146756874` and records the proposed
+It assesses the predecessor repository state at
+`844c096c21b77d8a83903d93ff4b5be146756874` and records the accepted
 bootstrap-to-development transition. It does not create or reinterpret SCF
 authority, replace the official governed development process, or authorize a
 specific successor specification or feature.
 
-Until the Issue #12 change is reviewed, accepted, and merged into `main`, this
-document records transition readiness rather than completed accepted transition.
+Issue #12 was implemented at `06c493c4105c08099251ab84eb79f6c588b9bba0` and accepted into `main` by
+merge commit `6fef89c06aad8d2e02753d532782882498df492d`. Repository-validation CI completed successfully, and
+Issue #12 was closed. The transition is complete.
 
 ## Assessed repository state
 
 - Repository: `wiigelec/scf`
-- Assessed `main` revision:
+- Predecessor assessed `main` revision:
   `844c096c21b77d8a83903d93ff4b5be146756874`
+- Accepted transition merge revision:
+  `6fef89c06aad8d2e02753d532782882498df492d`
 - Governing issue: #12, **Complete the bootstrap-to-development transition**
 - Governing roadmap:
   `planning/BOOTSTRAP-TO-DEVELOPMENT-ROADMAP.md`
@@ -113,39 +116,34 @@ without relying on prior conversation history. It replaces the earlier Issue
 
 ### Criterion 8 — Explicit provisional-process supersession
 
-**Transition-ready; final accepted satisfaction depends on Issue #12 merge.**
+**Satisfied by the accepted Issue #12 merge and closure.**
 
-The accepted Issue #10 process already supersedes the provisional process
-prospectively for new work while preserving it as historical evidence. Issue #12
-does not recreate that process transition; it records that this accepted
-supersession, together with the remaining predecessor foundation, satisfies the
-repository-wide bootstrap-completion transition. Final satisfaction of this
-criterion as part of bootstrap completion depends on the Issue #12 record being
-accepted and merged into `main`.
+The accepted Issue #10 process supersedes the provisional process prospectively
+for new work while preserving it as historical evidence. The accepted Issue #12
+record confirms that this supersession, together with the predecessor foundation,
+satisfies the repository-wide bootstrap-completion transition.
 
 ### Criterion 9 — Required roadmap issues accepted and merged
 
-**Transition-ready; final satisfaction depends on Issue #12 merge and closure
-evidence.**
+**Satisfied by accepted merge and closure evidence.**
 
 Issues #4, #5, #7, #8, #9, #10, #11, and the accepted successor work in #24
-are represented in `main`. Issue #12 cannot use its branch-local state as proof
-of its own accepted completion. This criterion becomes satisfied only when the
-Issue #12 change is accepted and merged into `main`.
+are represented in `main`. Issue #12 was accepted by merge commit `6fef89c06aad8d2e02753d532782882498df492d`
+and subsequently closed.
 
 ### Criterion 10 — No transient or issue-state-only completion claim
 
-**Satisfied by the assessment method; final transition evidence remains pending.**
+**Satisfied by accepted repository and CI evidence.**
 
 This assessment uses accepted repository commits and artifacts rather than issue
-state, an unmerged convention, or transient conversation. Final completion must
-add the exact accepted Issue #12 merge revision and associated review,
-validation, and CI evidence.
+state, an unmerged convention, or transient conversation. Merge commit `6fef89c06aad8d2e02753d532782882498df492d`
+records the accepted Issue #12 transition after validation, review, and successful
+repository-validation CI.
 
 ## Normal-development entry criteria assessment
 
-Routine governed specification or feature development is transition-ready when
-the Issue #12 change is accepted because:
+Routine governed specification or feature development became active when the
+Issue #12 change was accepted because:
 
 1. the predecessor capabilities required by the bootstrap criteria are present
    on the assessed `main`;
@@ -167,7 +165,7 @@ and acceptance.
 
 ## Provisional-process supersession and preservation
 
-Upon accepted merge of the Issue #12 transition change:
+Following the accepted merge of the Issue #12 transition change:
 
 - `docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md` governs new SCF development;
 - `bootstrap/INITIAL-DEVELOPMENT-PROCESS.md` is superseded for new work;
@@ -180,16 +178,17 @@ Upon accepted merge of the Issue #12 transition change:
 
 ## Completion boundary
 
-This assessment supports a proposed transition-ready repository state. Final
-accepted bootstrap completion requires all of the following:
+This assessment records the accepted normal governed-development repository state.
+Bootstrap completion is evidenced by all of the following:
 
-- the Issue #12 patch passes focused and complete validation;
-- CI passes against the exact proposed commit;
-- review confirms every criterion and scope boundary;
-- the change is accepted and merged into `main`;
-- the exact accepted merge commit is recorded as completion evidence;
-- Issue #12 is closed only after the accepted repository state makes the
-  transition declaration true.
+- the Issue #12 patch passed focused and complete validation;
+- CI passed against the exact proposed commit;
+- review confirmed every criterion and scope boundary;
+- the change was accepted and merged into `main` at `6fef89c06aad8d2e02753d532782882498df492d`;
+- the exact accepted merge commit is recorded as completion evidence; and
+- Issue #12 was closed after the accepted repository state made the transition
+  declaration true.
 
-Before those events, the repository has the required predecessor foundation but
-must not represent Issue #12 itself as already accepted.
+The repository now has the required predecessor foundation and an accepted
+lifecycle transition into normal governed development. This record does not
+authorize successor feature work.

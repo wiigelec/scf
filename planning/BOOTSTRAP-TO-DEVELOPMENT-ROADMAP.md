@@ -5,9 +5,9 @@
 This document is a non-normative planning and coordination artifact produced
 under GitHub issue #6.
 
-It records the dependency-aware work required to move the Session Continuity
-Framework (SCF) repository from bootstrap initialization into normal governed
-development. It does not create, replace, supersede, or reinterpret repository
+It records the dependency-aware work that moved the Session Continuity Framework
+(SCF) repository from bootstrap initialization into normal governed development.
+The roadmap is retained as a completed historical coordination record. It does not create, replace, supersede, or reinterpret repository
 authority. The accepted authority and development process governing each issue
 remain controlling.
 
@@ -24,9 +24,9 @@ The repository currently operates under:
   authority references, context, scopes, requirements, and acceptance
   criteria.
 
-The one-time bootstrap exception has expired. The repository is performing
-governed post-bootstrap development, but the durable foundation needed for
-scalable normal feature work is not yet complete.
+The one-time bootstrap exception has expired. The durable development foundation
+and bootstrap-to-development transition were completed through Issue #12 and
+accepted by merge commit `6fef89c06aad8d2e02753d532782882498df492d`.
 
 ## Roadmap objective
 
@@ -64,6 +64,8 @@ the development process authoritative when that issue begins.
 The issue state recorded here is a planning snapshot, not lifecycle authority.
 GitHub issue state and accepted repository evidence remain authoritative.
 
+Issue #12 was implemented at `06c493c4105c08099251ab84eb79f6c588b9bba0` and accepted through merge commit `6fef89c06aad8d2e02753d532782882498df492d`. Its repository-validation CI completed successfully and the issue was closed.
+
 | Capability | Issue | Initial state | Strict predecessors |
 |---|---:|---|---|
 | Repository validation foundation | #4 | Complete | None |
@@ -73,7 +75,7 @@ GitHub issue state and accepted repository evidence remain authoritative.
 | Continuous-integration enforcement | #9 | Complete | #8 |
 | Official governed development process | #10 | Complete | #5, #7, #8, #9 |
 | Governed development-session initialization | #24 | Complete | #11 |
-| Bootstrap-to-development transition | #12 | In progress | #4, #5, #7, #8, #9, #10, #11 |
+| Bootstrap-to-development transition | #12 | Complete | #4, #5, #7, #8, #9, #10, #11 |
 
 Issue #7 preferably follows #5 even though #5 is not a strict predecessor.
 Establishing Level 0 first gives later planning records a durable authority root
@@ -254,7 +256,7 @@ After #4 is accepted:
 #7 ──────────────────────────────────────────┤
 #10 ─────────────────────────────────────────┴──► #11 Session restoration
 
-#4, #5, #7, #8, #9, #10, #11 ─────────────────► #12 Bootstrap transition
+#4, #5, #7, #8, #9, #10, #11, #24 ───────────► #12 Bootstrap transition
 ```
 
 ## Recommended implementation sequence
