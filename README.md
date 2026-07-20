@@ -33,20 +33,27 @@ boundaries.
 The three-record bounded-work planning convention is documented in
 [`docs/GOVERNED-ISSUE-PLANNING.md`](docs/GOVERNED-ISSUE-PLANNING.md).
 
-Independent sessions restore the smallest authoritative development context
+Independent sessions initialize the smallest authoritative development context
 through the
-[governed development session-restoration protocol](docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md).
-Run the read-only entrypoint with an explicit evidence bundle:
+[governed development-session initialization and interaction standard](docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md).
+
+A chatbot may use read-only remote access for orientation, then uses a guarded
+read-only Python interrogation script to establish the actual local branch, exact
+`HEAD`, worktree state, divergence, local commits, and planned mutation boundary.
+
+Every governed local or remote mutation is transported through a uniquely named,
+agent-developed guarded Python script downloaded to `~/Downloads`. The user runs
+exactly one literal command from the repository root:
 
 ```sh
-./scripts/restore-session --evidence PATH --format json
+python ~/Downloads/<unique-script-name>.py
 ```
 
-The protocol distinguishes remote, repository-local, and user-supplied local-only
-evidence. It also records guarded `user-run-python-script` artifacts, their
-execution state, transcript evidence, local-versus-remote commit visibility, the
-lifecycle frontier, and the exact next authorized action. Restoration does not
-mutate repository or lifecycle state and does not depend on prior chat history.
+Each script prints immediate progress and heartbeat messages, enforces its exact
+authorization boundary, and writes exactly one unique non-overwriting result file
+in `~/Downloads` for upload and review before any successor action. Direct chatbot
+connector writes are not a governed mutation path, and the workflow does not depend
+on prior chat history or model memory.
 
 `bootstrap/INITIAL-DEVELOPMENT-PROCESS.md` is retained as historical bootstrap
 evidence and is prospectively superseded by the official process.

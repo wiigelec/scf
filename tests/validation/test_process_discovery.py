@@ -41,13 +41,15 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
         ):
             self.assertIn(required, self.readme)
 
-    def test_readme_discovers_session_restoration(self) -> None:
+    def test_readme_discovers_session_initialization(self) -> None:
         for required in (
-            "governed development session-restoration protocol",
+            "governed development-session initialization and interaction standard",
             "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
-            "./scripts/restore-session --evidence PATH --format json",
-            "user-run-python-script",
-            "does not depend on prior chat history",
+            "guarded read-only Python interrogation script",
+            "python ~/Downloads/<unique-script-name>.py",
+            "exactly one unique non-overwriting result file",
+            "Direct chatbot connector writes are not a governed mutation path",
+            "does not depend on prior chat history or model memory",
         ):
             self.assertIn(required, self.readme)
 
