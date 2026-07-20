@@ -33,6 +33,21 @@ boundaries.
 The three-record bounded-work planning convention is documented in
 [`docs/GOVERNED-ISSUE-PLANNING.md`](docs/GOVERNED-ISSUE-PLANNING.md).
 
+Independent sessions restore the smallest authoritative development context
+through the
+[governed development session-restoration protocol](docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md).
+Run the read-only entrypoint with an explicit evidence bundle:
+
+```sh
+./scripts/restore-session --evidence PATH --format json
+```
+
+The protocol distinguishes remote, repository-local, and user-supplied local-only
+evidence. It also records guarded `user-run-python-script` artifacts, their
+execution state, transcript evidence, local-versus-remote commit visibility, the
+lifecycle frontier, and the exact next authorized action. Restoration does not
+mutate repository or lifecycle state and does not depend on prior chat history.
+
 `bootstrap/INITIAL-DEVELOPMENT-PROCESS.md` is retained as historical bootstrap
 evidence and is prospectively superseded by the official process.
 
