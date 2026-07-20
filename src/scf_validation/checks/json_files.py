@@ -1,4 +1,4 @@
-"""Tracked JSON encoding, syntax, and duplicate-key validation."""
+"""Working-tree JSON encoding, syntax, and duplicate-key validation."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from .common import from_problem
 
 def check_json_files(context: ValidationContext) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
-    for repository_path in context.tracked_json_paths():
+    for repository_path in context.json_paths():
         try:
             context.parse_json(repository_path)
         except InputProblem as problem:

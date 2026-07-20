@@ -40,7 +40,7 @@ class ValidationContext:
         self.root = root.resolve()
         self._bytes_cache: dict[str, bytes] = {}
         self._json_cache: dict[str, Any] = {}
-        self._tracked_json_cache: tuple[str, ...] | None = None
+        self._json_paths_cache: tuple[str, ...] | None = None
 
     @classmethod
     def create(cls, root: Path) -> "ValidationContext":
@@ -53,12 +53,16 @@ class ValidationContext:
             )
         return cls(resolved)
 
-    def tracked_json_paths(self) -> tuple[str, ...]:
-        if self._tracked_json_cache is not None:
-            return self._tracked_json_cache
+    def json_paths(self) -> tuple[str, ...]:
+        """Return tracked and untracked, non-ignored JSON paths."""
+        if self._json_paths_cache is not None:
+            return self._json_paths_cache
         try:
             result = subprocess.run(
-                ["git", "ls-files", "-z", "--", "*.json"],
+                [
+                    "git", "ls-files", "-z", "--cached", "--others",
+                    "--exclude-standard", "--", "*.json",
+                ],
                 cwd=self.root,
                 check=True,
                 stdout=subprocess.PIPE,
@@ -68,14 +72,18 @@ class ValidationContext:
             raise ContextError("git is required but was not found") from exc
         except subprocess.CalledProcessError as exc:
             detail = exc.stderr.decode("utf-8", "replace").strip()
-            raise ContextError(f"unable to enumerate tracked JSON files: {detail}") from exc
-        paths = tuple(
+            raise ContextError(f"unable to enumerate working-tree JSON files: {detail}") from exc
+        paths = {
             part.decode("utf-8", "surrogateescape")
             for part in result.stdout.split(b"\0")
             if part
-        )
-        self._tracked_json_cache = tuple(sorted(paths))
-        return self._tracked_json_cache
+        }
+        self._json_paths_cache = tuple(sorted(paths))
+        return self._json_paths_cache
+
+    def tracked_json_paths(self) -> tuple[str, ...]:
+        """Compatibility alias for callers predating working-tree coverage."""
+        return self.json_paths()
 
     def safe_path(self, repository_path: str) -> Path:
         if not isinstance(repository_path, str) or not repository_path:
@@ -143,7 +151,14 @@ class ValidationContext:
             return result
 
         try:
-            value = json.loads(text, object_pairs_hook=reject_duplicates)
+            def reject_constant(constant: str) -> None:
+                raise ValueError(f"non-standard JSON constant {constant!r}")
+
+            value = json.loads(
+                text,
+                object_pairs_hook=reject_duplicates,
+                parse_constant=reject_constant,
+            )
         except DuplicateKeyError as exc:
             raise InputProblem(
                 "SCF-JSON-DUPLICATE",
@@ -154,6 +169,12 @@ class ValidationContext:
             raise InputProblem(
                 "SCF-JSON-SYNTAX",
                 f"{exc.msg} at line {exc.lineno}, column {exc.colno}",
+                repository_path,
+            ) from exc
+        except ValueError as exc:
+            raise InputProblem(
+                "SCF-JSON-SYNTAX",
+                str(exc),
                 repository_path,
             ) from exc
         self._json_cache[repository_path] = value

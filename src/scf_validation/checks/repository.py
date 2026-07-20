@@ -91,31 +91,42 @@ def check_repository(context: ValidationContext) -> list[Diagnostic]:
         )
 
     outputs = bootstrap.get("allowed_outputs")
-    if isinstance(outputs, list):
-        for index, output in enumerate(outputs):
-            if not isinstance(output, str):
-                diagnostics.append(
-                    Diagnostic(
-                        "SCF-BOOTSTRAP-OUTPUT",
-                        Severity.ERROR,
-                        "historical output path must be a string",
-                        BOOTSTRAP_PATH,
-                        f"allowed_outputs[{index}]",
-                    )
+    if not isinstance(outputs, list) or not outputs:
+        diagnostics.append(
+            Diagnostic(
+                "SCF-BOOTSTRAP-OUTPUT",
+                Severity.ERROR,
+                "allowed_outputs must be a nonempty array of file paths",
+                BOOTSTRAP_PATH,
+                "allowed_outputs",
+            )
+        )
+        return diagnostics
+
+    for index, output in enumerate(outputs):
+        if not isinstance(output, str) or not output:
+            diagnostics.append(
+                Diagnostic(
+                    "SCF-BOOTSTRAP-OUTPUT",
+                    Severity.ERROR,
+                    "historical output path must be a nonempty string",
+                    BOOTSTRAP_PATH,
+                    f"allowed_outputs[{index}]",
                 )
-                continue
-            try:
-                target = context.safe_path(output)
-            except InputProblem as problem:
-                diagnostics.append(from_problem(problem))
-                continue
-            if not target.exists():
-                diagnostics.append(
-                    Diagnostic(
-                        "SCF-BOOTSTRAP-OUTPUT",
-                        Severity.ERROR,
-                        "historical bootstrap output is missing",
-                        output,
-                    )
+            )
+            continue
+        try:
+            target = context.safe_path(output)
+        except InputProblem as problem:
+            diagnostics.append(from_problem(problem))
+            continue
+        if not target.is_file():
+            diagnostics.append(
+                Diagnostic(
+                    "SCF-BOOTSTRAP-OUTPUT",
+                    Severity.ERROR,
+                    "historical bootstrap output must be a regular file",
+                    output,
                 )
+            )
     return diagnostics
