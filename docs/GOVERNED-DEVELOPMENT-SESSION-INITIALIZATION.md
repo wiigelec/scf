@@ -88,10 +88,41 @@ explicitly understood and included in the preconditions of the next script.
 
 Interrogation performs no local or remote mutation.
 
-## Definitive transport protocol
+## Prospective governed-executor transition
 
-The guarded agent-developed Python script is the exclusive execution boundary
-for governed local repository mutations and remote GitHub mutations.
+Upon acceptance and merge of Issue #31, `scripts/governed-execute` and a
+declarative governed operation description become the default execution boundary
+for operation classes implemented by the accepted executor. The executor owns
+guard evaluation, command construction, supervision, redaction, mutation
+accounting, result generation, overwrite refusal, and local or remote
+postcondition verification.
+
+The operation description is data, not executable source. It may select only an
+executor-recognized operation type and bounded inputs. It may not supply
+free-form shell, interpreter snippets, replacement command allowlists, disabled
+guards, suppressed evidence, or expanded authorization.
+
+The user runs one repository-native command:
+
+```sh
+./scripts/governed-execute /path/to/<unique-operation>.json
+```
+
+The result destination is declared by the operation, must be outside the
+repository, and must already exist. The executor refuses to overwrite an
+existing result. A bootstrap wrapper may only locate and verify the accepted
+executor and invoke it; it may not reimplement executor mechanics.
+
+Unsupported operation classes remain blocked unless an explicit governed
+transition exception authorizes the legacy protocol. There is no silent fallback
+from an unsupported declarative operation to unrestricted script execution.
+
+## Legacy guarded-script protocol and historical work
+
+The guarded agent-developed Python script remains the controlling execution
+boundary until Issue #31 is accepted and merged. It also remains valid historical
+evidence for work properly performed under Issue #24 and may continue to govern
+already-open work unless that work is explicitly migrated.
 
 The chatbot:
 

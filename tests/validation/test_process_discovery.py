@@ -66,7 +66,7 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
         for required in (
             "## Development-session initialization and interaction",
             "docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md",
-            "python ~/Downloads/<unique-script-name>.py",
+            "repository-native entrypoint",
             "direct connector writes are not a governed mutation path",
         ):
             self.assertIn(required, self.official)
@@ -77,8 +77,8 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
             "## Governed detailed scope",
             "## Governed work breakdown and patch plan",
             "expected changed-file boundary",
-            "single result artifact",
-            "guarded script transport protocol",
+            "operation description and result artifact remain transient execution evidence",
+            "use the accepted repository executor",
         ):
             self.assertIn(required, self.planning)
 

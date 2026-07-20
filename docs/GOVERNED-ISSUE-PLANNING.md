@@ -241,13 +241,18 @@ bounded objective, accepted base, working branch, patch sequence, expected
 changed-file boundary, planned commit subject, validation plan, and completion
 evidence. It then interrogates the actual local tree before any local mutation.
 
-When a planned operation is performed through the guarded downloadable Python
-script transport protocol, the planning record may identify the expected script
-execution contract. The script and its single result artifact remain transient
-or user-supplied local-only evidence. The resulting commit or remote GitHub
-mutation becomes independently verifiable only after its exact identity is
-published and resolved.
+For work governed after acceptance and merge of Issue #31, the patch plan may
+identify the executor operation type, exact authorization boundary, repository
+and revision guards, expected paths or remote objects, validation profiles,
+publication boundary, and result-destination policy. It must not place
+description-provided executable code or free-form commands into the plan.
 
-All governed local and remote mutations, including planning-record edits, use
-the guarded script transport protocol. Read-only chatbot access may be used for
-orientation and review.
+The operation description and result artifact remain transient execution
+evidence. A resulting commit or remote GitHub mutation becomes independently
+verifiable only after its exact identity is published and resolved.
+
+Supported governed local and remote mutations, including planning-record edits,
+use the accepted repository executor. Unsupported classes remain blocked or use
+an explicitly documented transition exception. Read-only chatbot access may be
+used for orientation and review; direct connector writes are not a governed
+mutation path.
