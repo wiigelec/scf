@@ -8,6 +8,10 @@ README = REPOSITORY_ROOT / "README.md"
 BOOTSTRAP = REPOSITORY_ROOT / "bootstrap" / "INITIAL-DEVELOPMENT-PROCESS.md"
 PLANNING = REPOSITORY_ROOT / "docs" / "GOVERNED-ISSUE-PLANNING.md"
 OFFICIAL = REPOSITORY_ROOT / "docs" / "OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md"
+RESTORATION = (
+    REPOSITORY_ROOT / "docs" / "GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md"
+)
+RESTORE_SCRIPT = REPOSITORY_ROOT / "scripts" / "restore-session"
 
 
 class OfficialProcessDiscoveryTests(unittest.TestCase):
@@ -17,6 +21,12 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
         cls.bootstrap = " ".join(BOOTSTRAP.read_text(encoding="utf-8").split())
         cls.planning = " ".join(PLANNING.read_text(encoding="utf-8").split())
         cls.official = " ".join(OFFICIAL.read_text(encoding="utf-8").split())
+        cls.restoration = " ".join(
+            RESTORATION.read_text(encoding="utf-8").split()
+        )
+        cls.restore_script = " ".join(
+            RESTORE_SCRIPT.read_text(encoding="utf-8").split()
+        )
 
     def test_readme_discovers_one_official_process(self) -> None:
         for required in (
@@ -34,6 +44,64 @@ class OfficialProcessDiscoveryTests(unittest.TestCase):
             "docs/GOVERNED-ISSUE-PLANNING.md",
         ):
             self.assertIn(required, self.readme)
+
+    def test_readme_discovers_session_restoration(self) -> None:
+        for required in (
+            "governed development session-restoration protocol",
+            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
+            "./scripts/restore-session --evidence PATH --format json",
+            "user-run-python-script",
+            "does not depend on prior chat history",
+        ):
+            self.assertIn(required, self.readme)
+
+    def test_restoration_is_subordinate_and_read_only(self) -> None:
+        for required in (
+            "official read-only restoration protocol",
+            "docs/OFFICIAL-GOVERNED-DEVELOPMENT-PROCESS.md",
+            "does not create product authority",
+            "without relying on prior chat history",
+            "without mutating state",
+        ):
+            self.assertIn(required, self.restoration)
+
+    def test_official_process_identifies_restoration_relationship(self) -> None:
+        for required in (
+            "## Session restoration across independent sessions",
+            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
+            "./scripts/restore-session",
+            "user-run-python-script",
+            "may not execute that command",
+        ):
+            self.assertIn(required, self.official)
+
+    def test_planning_guide_identifies_restoration_inputs(self) -> None:
+        for required in (
+            "## Relationship to session restoration",
+            "## Governed detailed scope",
+            "## Governed work breakdown and patch plan",
+            "expected changed-file boundary",
+            "user-run-python-script",
+            "repository-local registry",
+        ):
+            self.assertIn(required, self.planning)
+
+    def test_restore_script_is_repository_root_entrypoint(self) -> None:
+        for required in (
+            "Run governed development session restoration from the repository root",
+            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
+            "from scf_restoration.cli import main",
+        ):
+            self.assertIn(required, self.restore_script)
+
+    def test_required_artifacts_protect_restoration(self) -> None:
+        from src.scf_validation.checks.repository import REQUIRED_ARTIFACTS
+
+        self.assertIn(
+            "docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md",
+            REQUIRED_ARTIFACTS,
+        )
+        self.assertIn("scripts/restore-session", REQUIRED_ARTIFACTS)
 
     def test_readme_marks_bootstrap_process_historical(self) -> None:
         for required in (

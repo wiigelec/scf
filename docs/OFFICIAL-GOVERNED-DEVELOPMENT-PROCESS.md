@@ -378,3 +378,28 @@ that work began unless an explicit governed decision migrates it.
 A later official process may amend or supersede this one only through an accepted
 repository-wide process change with explicit parent, scope, transition, and
 supersession rules.
+
+## Session restoration across independent sessions
+
+A new assistant-user session must recover governed development context from durable
+evidence rather than prior chat history or model memory.
+
+The repository's official read-only restoration protocol is
+`docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md`. Its executable entrypoint is
+`./scripts/restore-session`.
+
+Restoration applies this process; it does not replace or amend it. It must preserve
+the distinctions among accepted authority, governing issue scope, designated
+planning records, branch and commit state, validation and CI evidence, semantic
+review, acceptance, merge, closure, and successor authorization.
+
+Chat-developed work may be transferred into the local Git tree through a guarded
+`user-run-python-script`. Such a script is a transient execution artifact, not
+accepted repository state. Its filename, digest when available, invocation,
+expected branch and revision, intended file boundary, planned commit subject,
+execution state, transcript evidence, and local-versus-remote visibility may be
+restored as evidence.
+
+A restoration result may identify an exact already-authorized command as the next
+action. It may not execute that command, mutate state, invent missing context, or
+authorize broader or successor work.

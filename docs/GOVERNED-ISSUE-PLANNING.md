@@ -229,3 +229,20 @@ Those responsibilities belong to their accepted repository mechanisms and the
 official governed development process. This document supplies the issue-based
 planning records used within that process and must not duplicate live issue,
 pull-request, commit, validation, or CI state.
+
+## Relationship to session restoration
+
+The designated issue body, `## Governed detailed scope` comment, and
+`## Governed work breakdown and patch plan` comment are durable inputs to
+`docs/GOVERNED-DEVELOPMENT-SESSION-RESTORATION.md`.
+
+Restoration reads those records to recover the bounded objective, accepted base,
+working branch, active patch, expected changed-file boundary, planned commit
+subject, completed work, remaining work, and next authorized action. It does not
+edit the records or duplicate their live state in a repository-local registry.
+
+When a planned patch is delivered as a guarded `user-run-python-script`, the
+planning record may identify the expected script execution contract. The script
+and its terminal transcript remain transient or user-supplied local-only evidence;
+the resulting commit becomes remote evidence only after its exact SHA is published
+and independently resolvable.
