@@ -24,9 +24,12 @@ successor work still requires its own governed issue and accepted scope.
 
 ## Repository state
 
-This repository is in governed post-bootstrap foundation development. It now
-contains a proposed durable Level 0 authority and local repository validation,
-but the bootstrap-to-development transition is not complete.
+This repository has completed its bootstrap-to-development transition and now
+operates under normal governed development. It contains the accepted durable
+Level 0 authority, local repository validation, continuous integration, the
+official governed development process, and independent-session initialization.
+This lifecycle completion does not authorize any particular successor feature;
+successor work still requires its own governed issue and accepted scope.
 
 ## Authority
 
