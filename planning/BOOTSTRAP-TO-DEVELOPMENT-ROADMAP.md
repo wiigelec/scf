@@ -67,13 +67,13 @@ GitHub issue state and accepted repository evidence remain authoritative.
 | Capability | Issue | Initial state | Strict predecessors |
 |---|---:|---|---|
 | Repository validation foundation | #4 | Complete | None |
-| Initial durable Level 0 authority | #5 | In progress | #4 |
-| Governed planning and bounded work records | #7 | Open | #4 |
-| Repository development validation gate | #8 | Open | #7 |
-| Continuous-integration enforcement | #9 | Open | #8 |
-| Official governed development process | #10 | Open | #5, #7, #8, #9 |
-| Governed development-session initialization | #24 | Open | #11 |
-| Bootstrap-to-development transition | #12 | Open | #4, #5, #7, #8, #9, #10, #11 |
+| Initial durable Level 0 authority | #5 | Complete | #4 |
+| Governed planning and bounded work records | #7 | Complete | #4 |
+| Repository development validation gate | #8 | Complete | #7 |
+| Continuous-integration enforcement | #9 | Complete | #8 |
+| Official governed development process | #10 | Complete | #5, #7, #8, #9 |
+| Governed development-session initialization | #24 | Complete | #11 |
+| Bootstrap-to-development transition | #12 | In progress | #4, #5, #7, #8, #9, #10, #11 |
 
 Issue #7 preferably follows #5 even though #5 is not a strict predecessor.
 Establishing Level 0 first gives later planning records a durable authority root
@@ -209,9 +209,11 @@ missing predecessor capability or waiving an unmet criterion.
    Session restoration must recover the actual durable planning and development
    process rather than a temporary bootstrap convention.
 
-7. **#4, #5, #7, #8, #9, #10, and #11 precede #12.**
+7. **#4, #5, #7, #8, #9, #10, and the accepted session-initialization
+   successor work from #24 precede #12.**
    The transition issue verifies the complete foundation and must not implement
-   a missing predecessor.
+   a missing predecessor. Issue #24 supplies the current capability that
+   replaced the earlier #11 session-restoration framing.
 
 ### Preferred ordering
 
@@ -295,7 +297,8 @@ an official durable process.
 
 ### Milestone D — Recoverable normal-development foundation
 
-Satisfied when #11 and #12 are accepted and merged into `main`.
+Satisfied when the accepted session-initialization successor work from #24
+and Issue #12 are accepted and merged into `main`.
 
 A new session can recover the governed frontier, and the repository has
 explicitly completed the transition from provisional bootstrap development to
