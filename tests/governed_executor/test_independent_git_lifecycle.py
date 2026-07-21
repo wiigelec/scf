@@ -11,7 +11,7 @@ from scf_governed_executor.core import AUTHORIZATION_FIELDS, operation_digest
 
 ROOT = Path(__file__).resolve().parents[2]
 ORIGIN = "https://github.com/wiigelec/scf.git"
-EXECUTOR_VERSION = "0.3.1"
+EXECUTOR_VERSION = "0.4.0"
 HEAD = subprocess.run(
     ["git", "rev-parse", "HEAD"],
     cwd=ROOT,
