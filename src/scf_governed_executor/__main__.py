@@ -10,9 +10,10 @@ from . import branch_create
 from . import core as core_module
 from . import lifecycle
 from . import local_files
+from . import issue_comments
 
 
-core_module.EXECUTOR_VERSION = "0.4.0"
+core_module.EXECUTOR_VERSION = "0.5.0"
 
 PROTECTED_EXECUTOR_PATHS = frozenset(
     {
@@ -22,6 +23,7 @@ PROTECTED_EXECUTOR_PATHS = frozenset(
         "src/scf_governed_executor/core.py",
         "src/scf_governed_executor/git_publication.py",
         "src/scf_governed_executor/local_files.py",
+        "src/scf_governed_executor/issue_comments.py",
         "src/scf_governed_executor/self_update.py",
         "src/scf_governed_executor/validation.py",
     }
@@ -241,6 +243,8 @@ if operation_type == "executor-self-update":
     from .self_update import main
 elif operation_type == branch_create.BRANCH_CREATE_OPERATION_TYPE:
     main = branch_main
+elif operation_type == issue_comments.ISSUE_COMMENT_OPERATION_TYPE:
+    main = issue_comments.issue_comment_main
 elif operation_type in lifecycle.LIFECYCLE_OPERATION_TYPES:
     main = lifecycle.lifecycle_main
 else:
