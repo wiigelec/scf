@@ -31,7 +31,7 @@ class LocalFileProtectionTests(unittest.TestCase):
                 "schema_version": 1,
                 "operation_id": "test.local-file-protected-path",
                 "operation_type": "local-file-operations",
-                "executor_version": "0.3.1",
+                "executor_version": "0.4.0",
                 "operation_digest": "",
                 "repository": {"root": str(ROOT), "origin": ORIGIN},
                 "guards": {
