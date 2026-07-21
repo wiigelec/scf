@@ -52,10 +52,13 @@ SELF_UPDATE_PROTECTED_PATHS = frozenset(
         "src/scf_governed_executor/__main__.py",
         "src/scf_governed_executor/core.py",
         "src/scf_governed_executor/git_publication.py",
+        "src/scf_governed_executor/issue_comments.py",
         "src/scf_governed_executor/local_files.py",
         "src/scf_governed_executor/self_update.py",
         "src/scf_governed_executor/validation.py",
+        "tests/governed_executor/test_core.py",
         "tests/governed_executor/test_executor_self_update.py",
+        "tests/governed_executor/test_issue_comments.py",
         "tests/governed_executor/test_local_file_protection.py",
     }
 )

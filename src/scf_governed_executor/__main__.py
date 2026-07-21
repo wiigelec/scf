@@ -13,7 +13,7 @@ from . import local_files
 from . import issue_comments
 
 
-core_module.EXECUTOR_VERSION = "0.5.0"
+core_module.EXECUTOR_VERSION = "0.4.0"
 
 PROTECTED_EXECUTOR_PATHS = frozenset(
     {
