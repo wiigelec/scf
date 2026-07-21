@@ -2,13 +2,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 import scf_governed_executor.self_update as self_update_module
-from scf_governed_executor.core import AUTHORIZATION_FIELDS, SchemaError
-from scf_governed_executor.core import operation_digest
+from scf_governed_executor.core import (
+    AUTHORIZATION_FIELDS,
+    CommandSupervisor,
+    ExecutorError,
+    SchemaError,
+    command_record_dict,
+    operation_digest,
+)
 
 
 class ExecutorSelfUpdateSchemaTests(unittest.TestCase):
@@ -126,6 +133,79 @@ class ExecutorSelfUpdateSchemaTests(unittest.TestCase):
             "replacement executor version must differ",
         ):
             self.load(operation)
+
+
+class SupervisedStdinTransportTests(unittest.TestCase):
+    def test_text_stdin_is_transported_and_safely_recorded(self) -> None:
+        payload = "line one\nMarkdown **quoted** Unicode Ω $() ' \"\n"
+        supervisor = CommandSupervisor(heartbeat_seconds=0.01, environment={})
+        with tempfile.TemporaryDirectory(prefix="stdin path with spaces ") as tmp:
+            record = supervisor.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())",
+                ],
+                Path(tmp),
+                timeout_seconds=2,
+                stdin_text=payload,
+                stdin_label="application/json; test-request",
+            )
+        self.assertEqual(record.stdout, payload)
+        evidence = command_record_dict(record)["stdin"]
+        encoded = payload.encode("utf-8")
+        self.assertEqual(
+            evidence,
+            {
+                "supplied": True,
+                "byte_count": len(encoded),
+                "sha256": hashlib.sha256(encoded).hexdigest(),
+                "label": "application/json; test-request",
+            },
+        )
+        self.assertNotIn(payload, json.dumps(record.command))
+        self.assertNotIn(payload, json.dumps(evidence))
+
+    def test_bytes_stdin_and_absent_stdin_are_distinguished(self) -> None:
+        supervisor = CommandSupervisor(heartbeat_seconds=0.01, environment={})
+        with tempfile.TemporaryDirectory() as tmp:
+            bytes_record = supervisor.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())",
+                ],
+                Path(tmp),
+                timeout_seconds=2,
+                stdin_bytes=b"binary-safe-input",
+            )
+            empty_record = supervisor.run(
+                [sys.executable, "-c", "print('ok')"],
+                Path(tmp),
+                timeout_seconds=2,
+            )
+        self.assertEqual(bytes_record.stdout, "binary-safe-input")
+        self.assertTrue(bytes_record.stdin["supplied"])
+        self.assertEqual(
+            empty_record.stdin,
+            {
+                "supplied": False,
+                "byte_count": 0,
+                "sha256": None,
+                "label": None,
+            },
+        )
+
+    def test_ambiguous_stdin_is_rejected_before_spawn(self) -> None:
+        supervisor = CommandSupervisor(environment={})
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ExecutorError, "mutually exclusive"):
+                supervisor.run(
+                    [sys.executable, "-c", "pass"],
+                    Path(tmp),
+                    stdin_text="text",
+                    stdin_bytes=b"bytes",
+                )
 
 
 if __name__ == "__main__":

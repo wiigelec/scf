@@ -32,7 +32,7 @@ from .validation import (
 )
 
 
-EXECUTOR_VERSION = "0.1.0"
+EXECUTOR_VERSION = "0.6.0"
 OPERATION_SCHEMA_VERSION = 1
 RESULT_SCHEMA_VERSION = 1
 TERMINAL_STATUSES = {
@@ -391,6 +391,7 @@ class CommandRecord:
     stdout: str
     stderr: str
     redaction_events: list[dict[str, str]]
+    stdin: dict[str, Any]
 
 
 class CommandSupervisor:
@@ -413,11 +414,38 @@ class CommandSupervisor:
         *,
         timeout_seconds: float = 300.0,
         phase: str = "command",
+        stdin_text: str | None = None,
+        stdin_bytes: bytes | None = None,
+        stdin_label: str | None = None,
     ) -> CommandRecord:
         if not command or any(not isinstance(part, str) or not part for part in command):
             raise ExecutorError("command must be a non-empty string sequence")
         if timeout_seconds <= 0:
             raise ExecutorError("timeout must be positive")
+        if stdin_text is not None and stdin_bytes is not None:
+            raise ExecutorError("stdin_text and stdin_bytes are mutually exclusive")
+        if stdin_text is not None and not isinstance(stdin_text, str):
+            raise ExecutorError("stdin_text must be a string")
+        if stdin_bytes is not None and not isinstance(stdin_bytes, bytes):
+            raise ExecutorError("stdin_bytes must be bytes")
+        if stdin_label is not None:
+            if (
+                not isinstance(stdin_label, str)
+                or not stdin_label
+                or len(stdin_label) > 128
+                or any(
+                    ord(character) < 32 or ord(character) == 127
+                    for character in stdin_label
+                )
+            ):
+                raise ExecutorError("stdin_label must be bounded printable text")
+        payload = stdin_text.encode("utf-8") if stdin_text is not None else stdin_bytes
+        stdin_evidence = {
+            "supplied": payload is not None,
+            "byte_count": len(payload) if payload is not None else 0,
+            "sha256": hashlib.sha256(payload).hexdigest() if payload is not None else None,
+            "label": stdin_label,
+        }
 
         started_at = utc_now()
         started = time.monotonic()
@@ -425,7 +453,7 @@ class CommandSupervisor:
             list(command),
             cwd=cwd,
             env=self.environment,
-            text=True,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=False,
@@ -441,16 +469,21 @@ class CommandSupervisor:
         thread = threading.Thread(target=heartbeat, daemon=True)
         thread.start()
         try:
-            stdout, stderr = proc.communicate(timeout=timeout_seconds)
+            stdout_bytes, stderr_bytes = proc.communicate(
+                input=payload,
+                timeout=timeout_seconds,
+            )
         except subprocess.TimeoutExpired:
             timed_out = True
             proc.kill()
-            stdout, stderr = proc.communicate()
+            stdout_bytes, stderr_bytes = proc.communicate()
         finally:
             stop.set()
             thread.join(timeout=self.heartbeat_seconds + 0.1)
 
         finished_at = utc_now()
+        stdout = stdout_bytes.decode("utf-8", errors="replace")
+        stderr = stderr_bytes.decode("utf-8", errors="replace")
         redacted_stdout, stdout_events = redact_text(stdout, self.environment)
         redacted_stderr, stderr_events = redact_text(stderr, self.environment)
         record = CommandRecord(
@@ -464,6 +497,7 @@ class CommandSupervisor:
             stdout=redacted_stdout,
             stderr=redacted_stderr,
             redaction_events=stdout_events + stderr_events,
+            stdin=stdin_evidence,
         )
         if timed_out:
             raise CommandTimeoutError(
@@ -484,6 +518,7 @@ def command_record_dict(record: CommandRecord) -> dict[str, Any]:
         "stdout": record.stdout,
         "stderr": record.stderr,
         "redaction_events": record.redaction_events,
+        "stdin": dict(record.stdin),
     }
 
 

@@ -13,7 +13,7 @@ from . import local_files
 from . import issue_comments
 
 
-core_module.EXECUTOR_VERSION = "0.5.0"
+core_module.EXECUTOR_VERSION = "0.6.0"
 
 PROTECTED_EXECUTOR_PATHS = frozenset(
     {
@@ -23,6 +23,7 @@ PROTECTED_EXECUTOR_PATHS = frozenset(
         "src/scf_governed_executor/core.py",
         "src/scf_governed_executor/git_publication.py",
         "src/scf_governed_executor/local_files.py",
+        "src/scf_governed_executor/lifecycle.py",
         "src/scf_governed_executor/issue_comments.py",
         "src/scf_governed_executor/self_update.py",
         "src/scf_governed_executor/validation.py",
