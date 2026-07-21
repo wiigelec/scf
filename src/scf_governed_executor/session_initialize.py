@@ -261,7 +261,6 @@ def _run(
         root,
         timeout_seconds=timeout,
         phase=phase,
-        allowed_exit_codes=allowed_exit_codes,
         stdin_bytes=stdin_bytes,
         stdin_label=stdin_label,
     )

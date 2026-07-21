@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from scf_governed_executor import core
 from scf_governed_executor import combined_publication
@@ -117,6 +118,85 @@ class SessionInitializationContractTests(unittest.TestCase):
         operation["operation_digest"] = digest(operation)
         with self.assertRaisesRegex(core.SchemaError, "broadens authorization"):
             self.load(operation)
+
+
+class SessionInitializationCommandTests(unittest.TestCase):
+    class Supervisor:
+        def __init__(self, exit_code: int) -> None:
+            self.exit_code = exit_code
+            self.calls: list[dict[str, object]] = []
+
+        def run(
+            self,
+            command,
+            cwd,
+            *,
+            timeout_seconds=300.0,
+            phase="command",
+            stdin_text=None,
+            stdin_bytes=None,
+            stdin_label=None,
+        ):
+            self.calls.append(
+                {
+                    "command": list(command),
+                    "cwd": cwd,
+                    "timeout_seconds": timeout_seconds,
+                    "phase": phase,
+                    "stdin_text": stdin_text,
+                    "stdin_bytes": stdin_bytes,
+                    "stdin_label": stdin_label,
+                }
+            )
+            return SimpleNamespace(
+                command=list(command),
+                cwd=str(cwd),
+                started_at="2026-07-21T00:00:00+00:00",
+                finished_at="2026-07-21T00:00:01+00:00",
+                elapsed_seconds=1.0,
+                exit_code=self.exit_code,
+                timed_out=False,
+                stdout="",
+                stderr="rejected" if self.exit_code else "",
+                redaction_events=[],
+                stdin={
+                    "supplied": False,
+                    "byte_count": 0,
+                    "sha256": None,
+                    "label": None,
+                },
+            )
+
+    def test_run_accepts_explicit_nonzero_exit_code(self) -> None:
+        supervisor = self.Supervisor(1)
+        commands: list[dict[str, object]] = []
+        record = session_initialize._run(
+            supervisor,
+            Path("."),
+            commands,
+            ["git", "show-ref", "--verify", "--quiet", "refs/heads/missing"],
+            phase="check absent branch",
+            allowed_exit_codes={0, 1},
+        )
+        self.assertEqual(record.exit_code, 1)
+        self.assertEqual(commands[0]["exit_code"], 1)
+        self.assertNotIn("allowed_exit_codes", supervisor.calls[0])
+
+    def test_run_rejects_exit_code_outside_explicit_set(self) -> None:
+        supervisor = self.Supervisor(2)
+        commands: list[dict[str, object]] = []
+        with self.assertRaisesRegex(
+            session_initialize.SessionInitializationError, "rejected"
+        ):
+            session_initialize._run(
+                supervisor,
+                Path("."),
+                commands,
+                ["git", "show-ref", "--verify", "--quiet", "refs/heads/missing"],
+                phase="check absent branch",
+                allowed_exit_codes={0, 1},
+            )
+        self.assertEqual(commands[0]["exit_code"], 2)
 
 
 class CombinedPublicationContractTests(unittest.TestCase):
