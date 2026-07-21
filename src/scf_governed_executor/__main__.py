@@ -10,7 +10,7 @@ from . import core as core_module
 from . import local_files
 
 
-core_module.EXECUTOR_VERSION = "0.3.0"
+core_module.EXECUTOR_VERSION = "0.3.1"
 
 LIFECYCLE_OPERATION_TYPES = frozenset(
     {"git-stage", "git-commit", "git-push", "pull-request-create"}
@@ -270,7 +270,98 @@ def _validate_lifecycle_contract(operation: dict[str, Any]) -> dict[str, Any]:
 
 
 def _load_lifecycle_operation(path: Path) -> dict[str, Any]:
-    operation = core_module.load_operation(path)
+    try:
+        operation = json.loads(
+            path.read_text(encoding="utf-8"),
+            parse_constant=lambda value: (_ for _ in ()).throw(
+                ValueError(f"non-standard JSON constant: {value}")
+            ),
+        )
+    except OSError as exc:
+        raise core_module.SchemaError(f"cannot read operation: {exc}") from exc
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise core_module.SchemaError(f"invalid operation JSON: {exc}") from exc
+
+    operation = _object(operation, "operation")
+    _exact(
+        operation,
+        core_module.TOP_LEVEL_FIELDS,
+        core_module.TOP_LEVEL_FIELDS,
+        "operation",
+    )
+    if operation["schema_version"] != core_module.OPERATION_SCHEMA_VERSION:
+        raise core_module.SchemaError("unsupported operation schema version")
+    if operation["executor_version"] != core_module.EXECUTOR_VERSION:
+        raise core_module.SchemaError("incompatible executor version")
+    if operation["operation_type"] not in LIFECYCLE_OPERATION_TYPES:
+        raise core_module.SchemaError("unsupported lifecycle operation type")
+    if not isinstance(operation["operation_id"], str) or not re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9._-]{7,127}", operation["operation_id"]
+    ):
+        raise core_module.SchemaError("operation_id has invalid form")
+    if not isinstance(operation["operation_digest"], str) or not re.fullmatch(
+        r"[0-9a-f]{64}", operation["operation_digest"]
+    ):
+        raise core_module.SchemaError(
+            "operation_digest must be lowercase SHA-256"
+        )
+    if operation["operation_digest"] != core_module.operation_digest(operation):
+        raise core_module.SchemaError("operation digest mismatch")
+
+    repository = _object(operation["repository"], "repository")
+    _exact(
+        repository,
+        core_module.REPOSITORY_FIELDS,
+        core_module.REPOSITORY_FIELDS,
+        "repository",
+    )
+    for field in core_module.REPOSITORY_FIELDS:
+        _string(repository[field], f"repository.{field}")
+
+    guards = _object(operation["guards"], "guards")
+    _exact(
+        guards,
+        core_module.GUARD_FIELDS,
+        core_module.GUARD_FIELDS,
+        "guards",
+    )
+    _string(guards["branch"], "guards.branch")
+    if not isinstance(guards["head"], str) or not SHA1.fullmatch(
+        guards["head"]
+    ):
+        raise core_module.SchemaError(
+            "guards.head must be a lowercase full commit id"
+        )
+    if not isinstance(guards["clean"], bool):
+        raise core_module.SchemaError("guards.clean must be boolean")
+
+    authorization = _object(operation["authorization"], "authorization")
+    _exact(
+        authorization,
+        core_module.AUTHORIZATION_FIELDS,
+        core_module.AUTHORIZATION_FIELDS,
+        "authorization",
+    )
+    for field, value in authorization.items():
+        if not isinstance(value, bool):
+            raise core_module.SchemaError(
+                f"authorization.{field} must be boolean"
+            )
+
+    result = _object(operation["result"], "result")
+    _exact(
+        result,
+        core_module.RESULT_FIELDS,
+        core_module.RESULT_FIELDS,
+        "result",
+    )
+    _string(result["directory"], "result.directory")
+    if not isinstance(result["filename"], str) or not re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9._-]{7,191}\.result\.json",
+        result["filename"],
+    ):
+        raise core_module.SchemaError("result.filename has invalid form")
+
     return _validate_lifecycle_contract(operation)
 
 
