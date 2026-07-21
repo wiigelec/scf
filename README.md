@@ -87,6 +87,15 @@ result file in `~/Downloads` for upload and review before any successor action.
 Direct chatbot connector writes are not a governed mutation path, and the
 workflow does not depend on prior chat history or model memory.
 
+After the required code validation succeeds and its exact result artifact is
+reviewed, the default publication boundary is one executor `0.8.0`
+`git-publication` operation. That single governed operation stages only the
+approved paths, creates and verifies the planned commit, pushes the exact branch
+head, and creates or verifies the matching pull request. Separate `git-stage`,
+`git-commit`, `git-push`, or `pull-request-create` operations are reserved for
+explicitly planned exceptional or recovery cases; they are not the normal
+post-validation workflow.
+
 `bootstrap/INITIAL-DEVELOPMENT-PROCESS.md` is retained as historical bootstrap
 evidence and is prospectively superseded by the official process.
 
