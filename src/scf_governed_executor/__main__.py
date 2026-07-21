@@ -13,7 +13,7 @@ from . import local_files
 from . import issue_comments
 
 
-core_module.EXECUTOR_VERSION = "0.5.0"
+core_module.EXECUTOR_VERSION = "0.6.0"
 
 PROTECTED_EXECUTOR_PATHS = frozenset(
     {
@@ -240,20 +240,6 @@ def branch_main(argv: Sequence[str] | None = None) -> int:
 
 
 operation_type = _operation_type(sys.argv[1:])
-if len(sys.argv[1:]) == 1:
-    try:
-        _legacy_operation = json.loads(
-            Path(sys.argv[1]).expanduser().read_text(encoding="utf-8")
-        )
-    except (OSError, ValueError, json.JSONDecodeError):
-        _legacy_operation = None
-    if (
-        isinstance(_legacy_operation, dict)
-        and _legacy_operation.get("executor_version") == "0.4.0"
-        and _legacy_operation.get("operation_type") != "executor-self-update"
-    ):
-        core_module.EXECUTOR_VERSION = "0.4.0"
-
 if operation_type == "executor-self-update":
     from .self_update import main
 elif operation_type == branch_create.BRANCH_CREATE_OPERATION_TYPE:

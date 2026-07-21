@@ -104,7 +104,7 @@ class IssueCommentContractTests(unittest.TestCase):
             {
                 "schema_version": 1,
                 "operation_id": "test.issue-37.issue-comment",
-                "executor_version": "0.5.0",
+                "executor_version": "0.6.0",
                 "operation_digest": "",
                 "result": {
                     "directory": tempfile.gettempdir(),
@@ -130,6 +130,17 @@ class IssueCommentContractTests(unittest.TestCase):
             path.write_text(json.dumps(value), encoding="utf-8")
             loaded = load_issue_comment_operation(path)
         self.assertEqual(loaded["operation_type"], ISSUE_COMMENT_OPERATION_TYPE)
+
+    def test_issue_comment_transport_uses_supervised_stdin(self) -> None:
+        source = (
+            Path(__file__).resolve().parents[2]
+            / "src/scf_governed_executor/issue_comments.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"--input",\n                "-",', source)
+        self.assertIn("stdin_bytes=payload", source)
+        self.assertIn('stdin_label="github-issue-comment-json"', source)
+        self.assertNotIn("NamedTemporaryFile", source)
+        self.assertNotIn("payload_path", source)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import tempfile
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -190,9 +189,16 @@ def _run(
     *,
     phase: str,
     timeout: float = 60.0,
+    stdin_bytes: bytes | None = None,
+    stdin_label: str | None = None,
 ) -> str:
     record = supervisor.run(
-        list(command), root, timeout_seconds=timeout, phase=phase
+        list(command),
+        root,
+        timeout_seconds=timeout,
+        phase=phase,
+        stdin_bytes=stdin_bytes,
+        stdin_label=stdin_label,
     )
     commands.append(_record(record))
     if record.exit_code != 0:
@@ -348,39 +354,30 @@ def execute_issue_comment(
         progress.phase(3, f"performing issue comment {action}")
         result["mutation"]["attempted"] = True
         payload = json.dumps({"body": body}, ensure_ascii=False).encode("utf-8")
-        with tempfile.NamedTemporaryFile(
-            prefix="scf-issue-comment-",
-            suffix=".json",
-            dir=destination.parent,
-            delete=False,
-        ) as handle:
-            handle.write(payload)
-            payload_path = Path(handle.name)
-        try:
-            if action == "create":
-                method = "POST"
-                endpoint = f"repos/{slug}/issues/{issue_number}/comments"
-            else:
-                method = "PATCH"
-                endpoint = f"repos/{slug}/issues/comments/{inputs['comment_id']}"
-            output = _run(
-                supervisor,
-                root,
-                [
-                    "gh",
-                    "api",
-                    "--method",
-                    method,
-                    "--input",
-                    str(payload_path),
-                    endpoint,
-                ],
-                commands,
-                phase=f"{action} issue comment",
-                timeout=120.0,
-            )
-        finally:
-            payload_path.unlink(missing_ok=True)
+        if action == "create":
+            method = "POST"
+            endpoint = f"repos/{slug}/issues/{issue_number}/comments"
+        else:
+            method = "PATCH"
+            endpoint = f"repos/{slug}/issues/comments/{inputs['comment_id']}"
+        output = _run(
+            supervisor,
+            root,
+            [
+                "gh",
+                "api",
+                "--method",
+                method,
+                "--input",
+                "-",
+                endpoint,
+            ],
+            commands,
+            phase=f"{action} issue comment",
+            timeout=120.0,
+            stdin_bytes=payload,
+            stdin_label="github-issue-comment-json",
+        )
 
         mutation_observed = True
         result["mutation"]["observed"] = True
