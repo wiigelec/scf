@@ -519,7 +519,10 @@ def _purge_bytecode(root: Path) -> list[str]:
 
 
 def _status_paths(status: Sequence[str]) -> list[str]:
-    return sorted(line[3:] for line in status)
+    return sorted(
+        line[3:] if len(line) > 2 and line[2] == " " else line[2:]
+        for line in status
+    )
 
 def _run_checked(
     supervisor: CommandSupervisor,

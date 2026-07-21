@@ -30,7 +30,7 @@
       "const": 1
     },
     "executor_version": {
-      "const": "0.1.0"
+      "const": "0.3.1"
     },
     "result_id": {
       "type": "string",
@@ -44,7 +44,17 @@
       "pattern": "^[0-9a-f]{64}$"
     },
     "operation_type": {
-      "type": "string"
+      "enum": [
+        "repository-interrogation",
+        "local-file-operations",
+        "git-publication",
+        "governed-validation",
+        "executor-self-update",
+        "git-stage",
+        "git-commit",
+        "git-push",
+        "pull-request-create"
+      ]
     },
     "started_at": {
       "type": "string",
@@ -115,14 +125,14 @@
         "type": "string"
       }
     },
-    "safest_next_interaction": {
-      "type": "string"
-    },
     "file_operations": {
       "type": "array"
     },
     "publication": {
       "type": "object"
+    },
+    "safest_next_interaction": {
+      "type": "string"
     },
     "validation_evidence": {
       "type": "object"
