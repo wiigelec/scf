@@ -55,23 +55,37 @@ Independent sessions initialize the smallest authoritative development context
 through the
 [governed development-session initialization and interaction standard](docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md).
 
-A chatbot may use read-only remote access for orientation, then uses a guarded
-read-only Python interrogation script to establish the actual local branch, exact
-`HEAD`, worktree state, divergence, local commits, and planned mutation boundary.
+A chatbot may use read-only remote access for orientation. The session standard
+retains the phrase **guarded read-only Python interrogation script** for its
+read-only repository-discovery boundary; current local evidence and all local or
+remote mutations are handled by the governed executor through a uniquely named
+declarative operation file downloaded to `~/Downloads`. The user runs exactly
+one literal command from the repository root:
 
-Every governed local or remote mutation is transported through a uniquely named,
-agent-developed guarded Python script downloaded to `~/Downloads`. The user runs
-exactly one literal command from the repository root:
+```sh
+./scripts/governed-execute ~/Downloads/<unique-operation-name>.operation.json
+```
+
+The superseded bootstrap transport form is retained only as historical discovery
+evidence:
 
 ```sh
 python ~/Downloads/<unique-script-name>.py
 ```
 
-Each script prints immediate progress and heartbeat messages, enforces its exact
-authorization boundary, and writes exactly one unique non-overwriting result file
-in `~/Downloads` for upload and review before any successor action. Direct chatbot
-connector writes are not a governed mutation path, and the workflow does not depend
-on prior chat history or model memory.
+For a normal clean checkout, a `repository-initialize` operation can derive the
+current branch, exact `HEAD`, local `main`, and canonical `origin/main` state
+without requiring those volatile values in the operation description. It
+fetches `origin`, switches to the existing local `main`, and updates only by
+fast-forward. It refuses dirty, missing-main, local-ahead, diverged, origin-
+mismatch, or concurrently changing remote states and never resets, rebases,
+merges non-fast-forward, stashes, cleans, deletes, or discards local work.
+
+Each operation prints immediate progress and heartbeat messages, enforces its
+closed authorization boundary, and writes exactly one unique non-overwriting
+result file in `~/Downloads` for upload and review before any successor action.
+Direct chatbot connector writes are not a governed mutation path, and the
+workflow does not depend on prior chat history or model memory.
 
 `bootstrap/INITIAL-DEVELOPMENT-PROCESS.md` is retained as historical bootstrap
 evidence and is prospectively superseded by the official process.
