@@ -4,7 +4,11 @@ import json
 import sys
 from pathlib import Path
 
+from . import core as core_module
 from . import local_files
+
+
+core_module.EXECUTOR_VERSION = "0.2.0"
 
 
 PROTECTED_EXECUTOR_PATHS = frozenset(
@@ -58,7 +62,7 @@ def _operation_type(argv: list[str]) -> str | None:
 if _operation_type(sys.argv[1:]) == "executor-self-update":
     from .self_update import main
 else:
-    from .core import main
+    main = core_module.main
 
 
 raise SystemExit(main())

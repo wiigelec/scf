@@ -54,6 +54,8 @@ SELF_UPDATE_PROTECTED_PATHS = frozenset(
         "src/scf_governed_executor/local_files.py",
         "src/scf_governed_executor/self_update.py",
         "src/scf_governed_executor/validation.py",
+        "tests/governed_executor/test_executor_self_update.py",
+        "tests/governed_executor/test_local_file_protection.py",
     }
 )
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -636,9 +638,7 @@ def execute_self_update(
                 "unittest",
                 "discover",
                 "-s",
-                "tests",
-                "-p",
-                "test*governed*executor*.py",
+                "tests/governed_executor",
             ]
         else:
             validation_command = ["./scripts/validate"]
