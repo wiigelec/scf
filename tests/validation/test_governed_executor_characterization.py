@@ -49,6 +49,24 @@ def operation_digest(operation: dict[str, object]) -> str:
 
 
 class GovernedExecutorCharacterizationTests(unittest.TestCase):
+    def test_bound_strict_validator_preserves_exception_type(self) -> None:
+        validator = strict_validation.StrictValidator(core.SchemaError)
+        with self.assertRaisesRegex(
+            core.SchemaError,
+            r"^inputs must be an object$",
+        ):
+            validator.object([], "inputs")
+        with self.assertRaisesRegex(
+            core.SchemaError,
+            r"^inputs contains unknown fields: extra$",
+        ):
+            validator.exact_fields(
+                {"required": True, "extra": True},
+                {"required"},
+                {"required"},
+                "inputs",
+            )
+
     def test_strict_object_validators_preserve_shared_diagnostics(self) -> None:
         validators = (
             core._require_object,

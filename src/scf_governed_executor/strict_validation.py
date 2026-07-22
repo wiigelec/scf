@@ -7,6 +7,33 @@ from typing import Any, TypeVar
 ErrorType = TypeVar("ErrorType", bound=Exception)
 
 
+class StrictValidator:
+    def __init__(self, error_type: type[ErrorType]) -> None:
+        self._error_type = error_type
+
+    def object(self, value: Any, location: str) -> dict[str, Any]:
+        return require_object(
+            value,
+            location,
+            error_type=self._error_type,
+        )
+
+    def exact_fields(
+        self,
+        value: Mapping[str, Any],
+        allowed: set[str] | frozenset[str],
+        required: set[str] | frozenset[str],
+        location: str,
+    ) -> None:
+        require_exact_fields(
+            value,
+            allowed,
+            required,
+            location,
+            error_type=self._error_type,
+        )
+
+
 def require_object(
     value: Any,
     location: str,
