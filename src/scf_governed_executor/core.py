@@ -63,6 +63,12 @@ TERMINAL_STATUSES = {
     "publication-completed",
     "validation-completed",
 }
+SUCCESS_TERMINAL_STATUSES = {
+    "local-mutation-completed",
+    "commit-completed",
+    "publication-completed",
+    "validation-completed",
+}
 SUPPORTED_OPERATION_TYPES = {
     "repository-interrogation",
     "local-file-operations",
@@ -365,6 +371,41 @@ def _capture_ending_state_after_failure(
         result["diagnostics"].append(f"ending-state capture failed: {exc}")
 
 
+def _evaluate_guarded_repository(
+    operation: Mapping[str, Any],
+    result: dict[str, Any],
+    supervisor: CommandSupervisor,
+    progress: TerminalProgress,
+) -> Path:
+    root, command_records, state = evaluate_repository_guards(
+        operation,
+        supervisor,
+        progress,
+    )
+    result["commands"].extend(command_records)
+    result["starting_state"] = state
+    progress.check("repository identity and exact state verified")
+    return root
+
+
+def _record_guard_failure(result: dict[str, Any], exc: GuardError) -> None:
+    result["terminal_status"] = "guard-failed"
+    result["diagnostics"].append(str(exc))
+
+
+def _record_operation_failure(
+    result: dict[str, Any],
+    exc: ExecutorError,
+    repository_root: Path,
+    supervisor: CommandSupervisor,
+    *,
+    terminal_status: str,
+) -> None:
+    result["terminal_status"] = terminal_status
+    result["diagnostics"].append(str(exc))
+    _capture_ending_state_after_failure(result, repository_root, supervisor)
+
+
 def _finalize_execution(
     result: dict[str, Any],
     destination: Path,
@@ -394,14 +435,14 @@ def execute_interrogation(
     ) = _prepare_execution(operation, progress)
 
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
         progress.phase(3, "collecting repository evidence")
-        result["ending_state"] = state
+        result["ending_state"] = result["starting_state"]
         progress.phase(4, "verifying resulting state")
         progress.check("read-only repository state preserved")
         result["terminal_status"] = "local-mutation-completed"
@@ -409,11 +450,7 @@ def execute_interrogation(
             "Review the returned read-only repository evidence."
         )
     except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
-    finally:
-        result["finished_at"] = utc_now()
-
+        _record_guard_failure(result, exc)
     return _finalize_execution(
         result,
         destination,
@@ -436,12 +473,12 @@ def execute_local_file_operation(
     ) = _prepare_execution(operation, progress, mutation_authorized=True)
 
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
         progress.phase(3, "performing bounded file mutation")
         result["mutation"]["attempted"] = True
         records = apply_local_file_operations(
@@ -459,23 +496,21 @@ def execute_local_file_operation(
             "Review read-after-write evidence and repository state."
         )
     except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
+        _record_guard_failure(result, exc)
     except LocalFileOperationError as exc:
         result["file_operations"] = exc.records
         result["mutation"]["observed"] = exc.mutation_observed
-        result["terminal_status"] = (
-            "partial-local-mutation"
-            if exc.mutation_observed
-            else "pre-mutation-failed"
+        _record_operation_failure(
+            result,
+            exc,
+            repository_root,
+            supervisor,
+            terminal_status=(
+                "partial-local-mutation"
+                if exc.mutation_observed
+                else "pre-mutation-failed"
+            ),
         )
-        result["diagnostics"].append(str(exc))
-        _capture_ending_state_after_failure(
-            result, repository_root, supervisor
-        )
-    finally:
-        result["finished_at"] = utc_now()
-
     return _finalize_execution(
         result,
         destination,
@@ -499,12 +534,12 @@ def execute_git_publication(
     ) = _prepare_execution(operation, progress, mutation_authorized=True)
 
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
         progress.phase(3, "performing publication")
         result["mutation"]["attempted"] = True
         publication = publish_git_changes(
@@ -527,24 +562,22 @@ def execute_git_publication(
             "Review commit and remote verification evidence."
         )
     except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
+        _record_guard_failure(result, exc)
     except GitPublicationError as exc:
         result["publication"] = exc.evidence
         result["commands"].extend(exc.commands)
         result["mutation"]["observed"] = exc.mutation_observed
-        result["terminal_status"] = (
-            "partial-publication"
-            if exc.mutation_observed
-            else "pre-publication-failed"
+        _record_operation_failure(
+            result,
+            exc,
+            repository_root,
+            supervisor,
+            terminal_status=(
+                "partial-publication"
+                if exc.mutation_observed
+                else "pre-publication-failed"
+            ),
         )
-        result["diagnostics"].append(str(exc))
-        _capture_ending_state_after_failure(
-            result, repository_root, supervisor
-        )
-    finally:
-        result["finished_at"] = utc_now()
-
     return _finalize_execution(
         result,
         destination,
@@ -567,12 +600,12 @@ def execute_governed_validation(
     ) = _prepare_execution(operation, progress)
 
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
         progress.phase(3, "running governed validation")
         evidence = run_governed_validation(
             root,
@@ -591,20 +624,31 @@ def execute_governed_validation(
             "Review governed validation evidence before successor mutation."
         )
     except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
+        _record_guard_failure(result, exc)
     except GovernedValidationError as exc:
         result["validation_evidence"] = exc.evidence
         result["commands"].extend(exc.commands)
-        result["terminal_status"] = "pre-mutation-failed"
-        result["diagnostics"].append(str(exc))
-        _capture_ending_state_after_failure(
-            result, repository_root, supervisor
+        _record_operation_failure(
+            result,
+            exc,
+            repository_root,
+            supervisor,
+            terminal_status="pre-mutation-failed",
         )
-    finally:
-        result["finished_at"] = utc_now()
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
-    return _finalize_execution(result, destination, progress)
+
+OPERATION_HANDLERS = {
+    "repository-interrogation": execute_interrogation,
+    "local-file-operations": execute_local_file_operation,
+    "git-publication": execute_git_publication,
+    "governed-validation": execute_governed_validation,
+}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -636,14 +680,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Result     : {destination}", flush=True)
         print("", flush=True)
 
-        if operation["operation_type"] == "repository-interrogation":
-            result, destination = execute_interrogation(operation, progress)
-        elif operation["operation_type"] == "local-file-operations":
-            result, destination = execute_local_file_operation(operation, progress)
-        elif operation["operation_type"] == "git-publication":
-            result, destination = execute_git_publication(operation, progress)
-        else:
-            result, destination = execute_governed_validation(operation, progress)
+        handler = OPERATION_HANDLERS[operation["operation_type"]]
+        result, destination = handler(operation, progress)
 
         print("", flush=True)
         print("-" * 60, flush=True)
@@ -655,12 +693,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Next step:", flush=True)
         print(f"  {result['safest_next_interaction']}", flush=True)
 
-        if result["terminal_status"] not in {
-            "local-mutation-completed",
-            "commit-completed",
-            "publication-completed",
-            "validation-completed",
-        }:
+        if result["terminal_status"] not in SUCCESS_TERMINAL_STATUSES:
             return 1
         return 0
     except ExecutorError as exc:

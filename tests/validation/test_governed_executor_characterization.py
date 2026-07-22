@@ -163,6 +163,19 @@ class GovernedExecutorCharacterizationTests(unittest.TestCase):
                 "validation-completed",
             },
         )
+        self.assertEqual(
+            core.SUCCESS_TERMINAL_STATUSES,
+            {
+                "local-mutation-completed",
+                "commit-completed",
+                "publication-completed",
+                "validation-completed",
+            },
+        )
+        self.assertEqual(
+            set(core.OPERATION_HANDLERS),
+            core.SUPPORTED_OPERATION_TYPES,
+        )
 
     def test_operation_digest_is_canonical_and_excludes_digest_field(self) -> None:
         first = {
