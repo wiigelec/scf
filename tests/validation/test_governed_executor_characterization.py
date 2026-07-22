@@ -269,15 +269,26 @@ class GovernedExecutorCharacterizationTests(unittest.TestCase):
             versions["EXECUTOR_VERSION"],
             versions["LEGACY_EXECUTOR_VERSION"],
         )
-        for operation_type in (
-            "git-publication",
-            "development-session-initialize",
-            "executor-self-update",
-            "issue-create",
-            "repository-interrogation",
-        ):
-            with self.subTest(operation_type=operation_type):
-                self.assertIn(f'operation_type == "{operation_type}"', launcher)
+        dispatch_body = launcher.split("CURRENT_DISPATCH", 1)[1].split(
+            "def _unsupported", 1
+        )[0]
+        dispatch_keys = set(
+            re.findall(
+                r'^\s+"([^"]+)":',
+                dispatch_body,
+                flags=re.MULTILINE,
+            )
+        )
+        self.assertEqual(
+            dispatch_keys,
+            {
+                "development-session-initialize",
+                "executor-self-update",
+                "git-publication",
+                "issue-create",
+                "repository-interrogation",
+            },
+        )
         self.assertIn("return _legacy(operation_path)", launcher)
         self.assertIn("unsupported executor version for operation type", launcher)
 
