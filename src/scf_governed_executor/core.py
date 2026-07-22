@@ -317,18 +317,79 @@ def base_result(operation: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def execute_interrogation(
+
+def _prepare_execution(
     operation: Mapping[str, Any],
-    progress: TerminalProgress | None = None,
-) -> tuple[dict[str, Any], Path]:
+    progress: TerminalProgress | None,
+    *,
+    mutation_authorized: bool = False,
+) -> tuple[
+    TerminalProgress,
+    dict[str, Any],
+    CommandSupervisor,
+    Path,
+    Path,
+]:
     progress = progress or TerminalProgress()
     progress.phase(2, "evaluating repository guards")
     result = base_result(operation)
+    result["mutation"]["authorized"] = mutation_authorized
     supervisor = CommandSupervisor()
     repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
     destination = result_destination(operation, repository_root)
     if destination.exists():
         raise ResultConflictError(f"result already exists: {destination}")
+    return progress, result, supervisor, repository_root, destination
+
+
+def _capture_ending_state(
+    result: dict[str, Any],
+    root: Path,
+    supervisor: CommandSupervisor,
+) -> None:
+    commands, state = capture_repository_state(root, supervisor)
+    result["commands"].extend(commands)
+    result["ending_state"] = state
+
+
+def _capture_ending_state_after_failure(
+    result: dict[str, Any],
+    root: Path,
+    supervisor: CommandSupervisor,
+) -> None:
+    try:
+        _capture_ending_state(result, root, supervisor)
+    except ExecutorError as exc:
+        result["diagnostics"].append(f"ending-state capture failed: {exc}")
+
+
+def _finalize_execution(
+    result: dict[str, Any],
+    destination: Path,
+    progress: TerminalProgress,
+    *,
+    validate_terminal_status: bool = False,
+) -> tuple[dict[str, Any], Path]:
+    result["finished_at"] = utc_now()
+    if validate_terminal_status and result["terminal_status"] not in TERMINAL_STATUSES:
+        raise ExecutorError("invalid terminal result status")
+    progress.phase(5, "writing execution evidence")
+    write_result_exclusive(destination, result)
+    progress.check("result artifact created without overwrite")
+    return result, destination
+
+
+def execute_interrogation(
+    operation: Mapping[str, Any],
+    progress: TerminalProgress | None = None,
+) -> tuple[dict[str, Any], Path]:
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress)
 
     try:
         root, command_records, state = evaluate_repository_guards(
@@ -351,12 +412,12 @@ def execute_interrogation(
     finally:
         result["finished_at"] = utc_now()
 
-    if result["terminal_status"] not in TERMINAL_STATUSES:
-        raise ExecutorError("invalid terminal result status")
-    progress.phase(5, "writing execution evidence")
-    write_result_exclusive(destination, result)
-    progress.check("result artifact created without overwrite")
-    return result, destination
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
 
 
@@ -364,15 +425,13 @@ def execute_local_file_operation(
     operation: Mapping[str, Any],
     progress: TerminalProgress | None = None,
 ) -> tuple[dict[str, Any], Path]:
-    progress = progress or TerminalProgress()
-    progress.phase(2, "evaluating repository guards")
-    result = base_result(operation)
-    result["mutation"]["authorized"] = True
-    supervisor = CommandSupervisor()
-    repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
-    destination = result_destination(operation, repository_root)
-    if destination.exists():
-        raise ResultConflictError(f"result already exists: {destination}")
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress, mutation_authorized=True)
 
     try:
         root, command_records, state = evaluate_repository_guards(
@@ -392,9 +451,7 @@ def execute_local_file_operation(
         result["mutation"]["completed"] = True
         progress.check("authorized file operations completed")
         progress.phase(4, "verifying resulting state")
-        ending_commands, ending_state = capture_repository_state(root, supervisor)
-        result["commands"].extend(ending_commands)
-        result["ending_state"] = ending_state
+        _capture_ending_state(result, root, supervisor)
         result["terminal_status"] = "local-mutation-completed"
         result["safest_next_interaction"] = (
             "Review read-after-write evidence and repository state."
@@ -411,25 +468,18 @@ def execute_local_file_operation(
             else "pre-mutation-failed"
         )
         result["diagnostics"].append(str(exc))
-        try:
-            ending_commands, ending_state = capture_repository_state(
-                repository_root, supervisor
-            )
-            result["commands"].extend(ending_commands)
-            result["ending_state"] = ending_state
-        except ExecutorError as state_exc:
-            result["diagnostics"].append(
-                f"ending-state capture failed: {state_exc}"
-            )
+        _capture_ending_state_after_failure(
+            result, repository_root, supervisor
+        )
     finally:
         result["finished_at"] = utc_now()
 
-    if result["terminal_status"] not in TERMINAL_STATUSES:
-        raise ExecutorError("invalid terminal result status")
-    progress.phase(5, "writing execution evidence")
-    write_result_exclusive(destination, result)
-    progress.check("result artifact created without overwrite")
-    return result, destination
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
 
 
@@ -438,15 +488,13 @@ def execute_git_publication(
     operation: Mapping[str, Any],
     progress: TerminalProgress | None = None,
 ) -> tuple[dict[str, Any], Path]:
-    progress = progress or TerminalProgress()
-    progress.phase(2, "evaluating repository guards")
-    result = base_result(operation)
-    result["mutation"]["authorized"] = True
-    supervisor = CommandSupervisor()
-    repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
-    destination = result_destination(operation, repository_root)
-    if destination.exists():
-        raise ResultConflictError(f"result already exists: {destination}")
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress, mutation_authorized=True)
 
     try:
         root, command_records, state = evaluate_repository_guards(
@@ -471,9 +519,7 @@ def execute_git_publication(
         progress.check("commit and requested publication completed")
         result["mutation"]["observed"] = True
         result["mutation"]["completed"] = True
-        ending_commands, ending_state = capture_repository_state(root, supervisor)
-        result["commands"].extend(ending_commands)
-        result["ending_state"] = ending_state
+        _capture_ending_state(result, root, supervisor)
         result["terminal_status"] = "publication-completed"
         result["safest_next_interaction"] = (
             "Review commit and remote verification evidence."
@@ -491,23 +537,13 @@ def execute_git_publication(
             else "pre-publication-failed"
         )
         result["diagnostics"].append(str(exc))
-        try:
-            ending_commands, ending_state = capture_repository_state(
-                repository_root, supervisor
-            )
-            result["commands"].extend(ending_commands)
-            result["ending_state"] = ending_state
-        except ExecutorError as state_exc:
-            result["diagnostics"].append(
-                f"ending-state capture failed: {state_exc}"
-            )
+        _capture_ending_state_after_failure(
+            result, repository_root, supervisor
+        )
     finally:
         result["finished_at"] = utc_now()
 
-    progress.phase(5, "writing execution evidence")
-    write_result_exclusive(destination, result)
-    progress.check("result artifact created without overwrite")
-    return result, destination
+    return _finalize_execution(result, destination, progress)
 
 
 
@@ -515,14 +551,13 @@ def execute_governed_validation(
     operation: Mapping[str, Any],
     progress: TerminalProgress | None = None,
 ) -> tuple[dict[str, Any], Path]:
-    progress = progress or TerminalProgress()
-    progress.phase(2, "evaluating repository guards")
-    result = base_result(operation)
-    supervisor = CommandSupervisor()
-    repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
-    destination = result_destination(operation, repository_root)
-    if destination.exists():
-        raise ResultConflictError(f"result already exists: {destination}")
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress)
 
     try:
         root, command_records, state = evaluate_repository_guards(
@@ -543,9 +578,7 @@ def execute_governed_validation(
         result["validation_evidence"] = evidence
         progress.check("all requested validation profiles passed")
         progress.phase(4, "verifying resulting state")
-        ending_commands, ending_state = capture_repository_state(root, supervisor)
-        result["commands"].extend(ending_commands)
-        result["ending_state"] = ending_state
+        _capture_ending_state(result, root, supervisor)
         result["terminal_status"] = "validation-completed"
         result["safest_next_interaction"] = (
             "Review governed validation evidence before successor mutation."
@@ -558,23 +591,13 @@ def execute_governed_validation(
         result["commands"].extend(exc.commands)
         result["terminal_status"] = "pre-mutation-failed"
         result["diagnostics"].append(str(exc))
-        try:
-            ending_commands, ending_state = capture_repository_state(
-                repository_root, supervisor
-            )
-            result["commands"].extend(ending_commands)
-            result["ending_state"] = ending_state
-        except ExecutorError as state_exc:
-            result["diagnostics"].append(
-                f"ending-state capture failed: {state_exc}"
-            )
+        _capture_ending_state_after_failure(
+            result, repository_root, supervisor
+        )
     finally:
         result["finished_at"] = utc_now()
 
-    progress.phase(5, "writing execution evidence")
-    write_result_exclusive(destination, result)
-    progress.check("result artifact created without overwrite")
-    return result, destination
+    return _finalize_execution(result, destination, progress)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
