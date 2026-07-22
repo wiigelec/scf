@@ -2,18 +2,34 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
-import subprocess
 import sys
-import threading
-import time
 import uuid
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
-from urllib.parse import urlsplit, urlunsplit
+from typing import Any, Mapping, Sequence
+
+from . import EXECUTOR_VERSION
+
+from .errors import (
+    CommandTimeoutError,
+    ExecutorError,
+    GuardError,
+    ResultConflictError,
+    SchemaError,
+)
+from . import strict_validation
+from .runtime import (
+    CommandRecord,
+    CommandSupervisor,
+    TerminalProgress,
+    capture_repository_state,
+    command_record_dict,
+    evaluate_repository_guards,
+    redact_text,
+    result_destination,
+    utc_now,
+    write_result_exclusive,
+)
 
 from .local_files import (
     LocalFileOperationError,
@@ -32,7 +48,6 @@ from .validation import (
 )
 
 
-EXECUTOR_VERSION = "0.6.0"
 OPERATION_SCHEMA_VERSION = 1
 RESULT_SCHEMA_VERSION = 1
 TERMINAL_STATUSES = {
@@ -40,7 +55,15 @@ TERMINAL_STATUSES = {
     "pre-mutation-failed",
     "partial-local-mutation",
     "partial-remote-mutation",
+    "partial-publication",
+    "pre-publication-failed",
     "post-mutation-validation-failed",
+    "local-mutation-completed",
+    "commit-completed",
+    "publication-completed",
+    "validation-completed",
+}
+SUCCESS_TERMINAL_STATUSES = {
     "local-mutation-completed",
     "commit-completed",
     "publication-completed",
@@ -83,68 +106,6 @@ AUTHORIZATION_FIELDS = {
     "close_issue",
 }
 RESULT_FIELDS = {"directory", "filename"}
-SECRET_NAME = re.compile(
-    r"(?:token|password|passwd|secret|private[_-]?key|credential|authorization)",
-    re.IGNORECASE,
-)
-TOKEN_PATTERNS = (
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
-    re.compile(r"(?i)\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}"),
-)
-
-
-class ExecutorError(RuntimeError):
-    """Base executor failure."""
-
-
-class SchemaError(ExecutorError):
-    """Operation schema failure."""
-
-
-class GuardError(ExecutorError):
-    """Repository guard failure."""
-
-
-class ResultConflictError(ExecutorError):
-    """Result output would overwrite an existing path."""
-
-
-class CommandTimeoutError(ExecutorError):
-    """Supervised command exceeded its timeout."""
-
-
-class TerminalProgress:
-    """Consistent human-facing phase and check rendering."""
-
-    def __init__(self, total: int = 5) -> None:
-        if total <= 0:
-            raise ValueError("total must be positive")
-        self.total = total
-        self.current = 0
-        self.description = "initializing"
-
-    def phase(self, current: int, description: str) -> None:
-        if current < 1 or current > self.total:
-            raise ExecutorError("progress phase is outside the configured range")
-        if current < self.current:
-            raise ExecutorError("progress phase cannot move backward")
-        self.current = current
-        self.description = description
-        print(f"Phase [{current}/{self.total}]: {description}...", flush=True)
-
-    def check(self, description: str) -> None:
-        print(f"  ✓ {description}", flush=True)
-
-    def heartbeat_phase(self, detail: str | None = None) -> str:
-        description = detail or self.description
-        return f"phase=[{self.current}/{self.total}] {description}"
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
 def canonical_json(value: Any) -> bytes:
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
@@ -157,28 +118,20 @@ def operation_digest(operation: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical_json(body)).hexdigest()
 
 
+_STRICT = strict_validation.StrictValidator(SchemaError)
+
+
 def _require_exact_fields(
     value: Mapping[str, Any],
     allowed: set[str],
     required: set[str],
     location: str,
 ) -> None:
-    unknown = set(value) - allowed
-    missing = required - set(value)
-    if unknown:
-        raise SchemaError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise SchemaError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def _require_object(value: Any, location: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise SchemaError(f"{location} must be an object")
-    return value
+    return _STRICT.object(value, location)
 
 
 def _require_bool_map(value: Any, fields: set[str], location: str) -> dict[str, bool]:
@@ -343,265 +296,6 @@ def load_operation(path: Path) -> dict[str, Any]:
     return operation
 
 
-def redact_text(text: str, environment: Mapping[str, str] | None = None) -> tuple[str, list[dict[str, str]]]:
-    events: list[dict[str, str]] = []
-    redacted = text
-
-    def replace(category: str, secret: str) -> str:
-        fingerprint = hashlib.sha256(secret.encode("utf-8")).hexdigest()[:12]
-        events.append({"category": category, "fingerprint": fingerprint})
-        return f"<redacted:{category}:{fingerprint}>"
-
-    for pattern in TOKEN_PATTERNS:
-        redacted = pattern.sub(lambda match: replace("credential", match.group(0)), redacted)
-
-    split = urlsplit(redacted)
-    if split.scheme and split.netloc and (split.username or split.password):
-        credential = split.netloc.rsplit("@", 1)[0]
-        safe_netloc = split.netloc.rsplit("@", 1)[-1]
-        redacted = urlunsplit(
-            (split.scheme, safe_netloc, split.path, split.query, split.fragment)
-        )
-        events.append(
-            {
-                "category": "credential-url",
-                "fingerprint": hashlib.sha256(
-                    credential.encode("utf-8")
-                ).hexdigest()[:12],
-            }
-        )
-
-    for name, value in (environment or {}).items():
-        if value and SECRET_NAME.search(name) and value in redacted:
-            redacted = redacted.replace(value, replace("environment-secret", value))
-
-    unique_events = list({(e["category"], e["fingerprint"]): e for e in events}.values())
-    return redacted, unique_events
-
-
-@dataclass(frozen=True)
-class CommandRecord:
-    command: list[str]
-    cwd: str
-    started_at: str
-    finished_at: str
-    elapsed_seconds: float
-    exit_code: int | None
-    timed_out: bool
-    stdout: str
-    stderr: str
-    redaction_events: list[dict[str, str]]
-    stdin: dict[str, Any]
-
-
-class CommandSupervisor:
-    def __init__(
-        self,
-        heartbeat_seconds: float = 15.0,
-        output: Callable[[str], None] = print,
-        environment: Mapping[str, str] | None = None,
-    ) -> None:
-        if heartbeat_seconds <= 0:
-            raise ValueError("heartbeat_seconds must be positive")
-        self.heartbeat_seconds = heartbeat_seconds
-        self.output = output
-        self.environment = dict(environment or os.environ)
-
-    def run(
-        self,
-        command: Sequence[str],
-        cwd: Path,
-        *,
-        timeout_seconds: float = 300.0,
-        phase: str = "command",
-        stdin_text: str | None = None,
-        stdin_bytes: bytes | None = None,
-        stdin_label: str | None = None,
-    ) -> CommandRecord:
-        if not command or any(not isinstance(part, str) or not part for part in command):
-            raise ExecutorError("command must be a non-empty string sequence")
-        if timeout_seconds <= 0:
-            raise ExecutorError("timeout must be positive")
-        if stdin_text is not None and stdin_bytes is not None:
-            raise ExecutorError("stdin_text and stdin_bytes are mutually exclusive")
-        if stdin_text is not None and not isinstance(stdin_text, str):
-            raise ExecutorError("stdin_text must be a string")
-        if stdin_bytes is not None and not isinstance(stdin_bytes, bytes):
-            raise ExecutorError("stdin_bytes must be bytes")
-        if stdin_label is not None:
-            if (
-                not isinstance(stdin_label, str)
-                or not stdin_label
-                or len(stdin_label) > 128
-                or any(
-                    ord(character) < 32 or ord(character) == 127
-                    for character in stdin_label
-                )
-            ):
-                raise ExecutorError("stdin_label must be bounded printable text")
-        payload = stdin_text.encode("utf-8") if stdin_text is not None else stdin_bytes
-        stdin_evidence = {
-            "supplied": payload is not None,
-            "byte_count": len(payload) if payload is not None else 0,
-            "sha256": hashlib.sha256(payload).hexdigest() if payload is not None else None,
-            "label": stdin_label,
-        }
-
-        started_at = utc_now()
-        started = time.monotonic()
-        proc = subprocess.Popen(
-            list(command),
-            cwd=cwd,
-            env=self.environment,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
-        )
-        timed_out = False
-        stop = threading.Event()
-
-        def heartbeat() -> None:
-            while not stop.wait(self.heartbeat_seconds):
-                elapsed = int(time.monotonic() - started)
-                self.output(f"    heartbeat: {phase} still running ({elapsed}s)")
-
-        thread = threading.Thread(target=heartbeat, daemon=True)
-        thread.start()
-        try:
-            stdout_bytes, stderr_bytes = proc.communicate(
-                input=payload,
-                timeout=timeout_seconds,
-            )
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            proc.kill()
-            stdout_bytes, stderr_bytes = proc.communicate()
-        finally:
-            stop.set()
-            thread.join(timeout=self.heartbeat_seconds + 0.1)
-
-        finished_at = utc_now()
-        stdout = stdout_bytes.decode("utf-8", errors="replace")
-        stderr = stderr_bytes.decode("utf-8", errors="replace")
-        redacted_stdout, stdout_events = redact_text(stdout, self.environment)
-        redacted_stderr, stderr_events = redact_text(stderr, self.environment)
-        record = CommandRecord(
-            command=list(command),
-            cwd=str(cwd),
-            started_at=started_at,
-            finished_at=finished_at,
-            elapsed_seconds=round(time.monotonic() - started, 3),
-            exit_code=proc.returncode,
-            timed_out=timed_out,
-            stdout=redacted_stdout,
-            stderr=redacted_stderr,
-            redaction_events=stdout_events + stderr_events,
-            stdin=stdin_evidence,
-        )
-        if timed_out:
-            raise CommandTimeoutError(
-                f"command timed out after {timeout_seconds}s"
-            )
-        return record
-
-
-def command_record_dict(record: CommandRecord) -> dict[str, Any]:
-    return {
-        "command": record.command,
-        "cwd": record.cwd,
-        "started_at": record.started_at,
-        "finished_at": record.finished_at,
-        "elapsed_seconds": record.elapsed_seconds,
-        "exit_code": record.exit_code,
-        "timed_out": record.timed_out,
-        "stdout": record.stdout,
-        "stderr": record.stderr,
-        "redaction_events": record.redaction_events,
-        "stdin": dict(record.stdin),
-    }
-
-
-def evaluate_repository_guards(
-    operation: Mapping[str, Any],
-    supervisor: CommandSupervisor,
-    progress: TerminalProgress | None = None,
-) -> tuple[Path, list[dict[str, Any]], dict[str, Any]]:
-    repository = operation["repository"]
-    guards = operation["guards"]
-    root = Path(repository["root"]).expanduser().resolve()
-    if not root.is_dir():
-        raise GuardError("repository root does not exist")
-
-    records: list[dict[str, Any]] = []
-
-    def git(*args: str) -> str:
-        record = supervisor.run(
-            ["git", *args],
-            root,
-            timeout_seconds=30,
-            phase=(
-                progress.heartbeat_phase("evaluating repository guards")
-                if progress is not None
-                else "repository guard"
-            ),
-        )
-        records.append(command_record_dict(record))
-        if record.exit_code != 0:
-            raise GuardError(record.stderr.strip() or "git guard command failed")
-        return record.stdout.strip()
-
-    actual_root = Path(git("rev-parse", "--show-toplevel")).resolve()
-    if actual_root != root:
-        raise GuardError("repository root mismatch")
-    actual_origin = git("remote", "get-url", "origin")
-    if actual_origin != repository["origin"]:
-        raise GuardError("repository origin mismatch")
-    actual_branch = git("branch", "--show-current")
-    if actual_branch != guards["branch"]:
-        raise GuardError("repository branch mismatch")
-    actual_head = git("rev-parse", "HEAD")
-    if actual_head != guards["head"]:
-        raise GuardError("repository HEAD mismatch")
-    status = git("status", "--porcelain=v1")
-    actual_clean = not bool(status)
-    if actual_clean != guards["clean"]:
-        raise GuardError("repository clean-state mismatch")
-
-    state = {
-        "root": str(root),
-        "origin": actual_origin,
-        "branch": actual_branch,
-        "head": actual_head,
-        "clean": actual_clean,
-        "status": status.splitlines(),
-    }
-    return root, records, state
-
-
-def result_destination(operation: Mapping[str, Any], repository_root: Path) -> Path:
-    configured = operation["result"]
-    directory = Path(configured["directory"]).expanduser().resolve()
-    if not directory.is_dir():
-        raise ResultConflictError("result directory does not exist")
-    try:
-        directory.relative_to(repository_root)
-    except ValueError:
-        pass
-    else:
-        raise ResultConflictError("result directory must be outside repository")
-    return directory / configured["filename"]
-
-
-def write_result_exclusive(path: Path, result: Mapping[str, Any]) -> None:
-    try:
-        with path.open("x", encoding="utf-8") as handle:
-            json.dump(result, handle, indent=2, sort_keys=True)
-            handle.write("\n")
-    except FileExistsError as exc:
-        raise ResultConflictError(f"result already exists: {path}") from exc
-
-
 def base_result(operation: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": RESULT_SCHEMA_VERSION,
@@ -631,41 +325,96 @@ def base_result(operation: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def execute_interrogation(
+
+def _prepare_execution(
     operation: Mapping[str, Any],
-    progress: TerminalProgress | None = None,
-) -> tuple[dict[str, Any], Path]:
+    progress: TerminalProgress | None,
+    *,
+    mutation_authorized: bool = False,
+) -> tuple[
+    TerminalProgress,
+    dict[str, Any],
+    CommandSupervisor,
+    Path,
+    Path,
+]:
     progress = progress or TerminalProgress()
     progress.phase(2, "evaluating repository guards")
     result = base_result(operation)
+    result["mutation"]["authorized"] = mutation_authorized
     supervisor = CommandSupervisor()
     repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
     destination = result_destination(operation, repository_root)
     if destination.exists():
         raise ResultConflictError(f"result already exists: {destination}")
+    return progress, result, supervisor, repository_root, destination
 
+
+def _capture_ending_state(
+    result: dict[str, Any],
+    root: Path,
+    supervisor: CommandSupervisor,
+) -> None:
+    commands, state = capture_repository_state(root, supervisor)
+    result["commands"].extend(commands)
+    result["ending_state"] = state
+
+
+def _capture_ending_state_after_failure(
+    result: dict[str, Any],
+    root: Path,
+    supervisor: CommandSupervisor,
+) -> None:
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
-        )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
-        progress.phase(3, "collecting repository evidence")
-        result["ending_state"] = state
-        progress.phase(4, "verifying resulting state")
-        progress.check("read-only repository state preserved")
-        result["terminal_status"] = "local-mutation-completed"
-        result["safest_next_interaction"] = (
-            "Review the returned read-only repository evidence."
-        )
-    except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
-    finally:
-        result["finished_at"] = utc_now()
+        _capture_ending_state(result, root, supervisor)
+    except ExecutorError as exc:
+        result["diagnostics"].append(f"ending-state capture failed: {exc}")
 
-    if result["terminal_status"] not in TERMINAL_STATUSES:
+
+def _evaluate_guarded_repository(
+    operation: Mapping[str, Any],
+    result: dict[str, Any],
+    supervisor: CommandSupervisor,
+    progress: TerminalProgress,
+) -> Path:
+    root, command_records, state = evaluate_repository_guards(
+        operation,
+        supervisor,
+        progress,
+    )
+    result["commands"].extend(command_records)
+    result["starting_state"] = state
+    progress.check("repository identity and exact state verified")
+    return root
+
+
+def _record_guard_failure(result: dict[str, Any], exc: GuardError) -> None:
+    result["terminal_status"] = "guard-failed"
+    result["diagnostics"].append(str(exc))
+
+
+def _record_operation_failure(
+    result: dict[str, Any],
+    exc: ExecutorError,
+    repository_root: Path,
+    supervisor: CommandSupervisor,
+    *,
+    terminal_status: str,
+) -> None:
+    result["terminal_status"] = terminal_status
+    result["diagnostics"].append(str(exc))
+    _capture_ending_state_after_failure(result, repository_root, supervisor)
+
+
+def _finalize_execution(
+    result: dict[str, Any],
+    destination: Path,
+    progress: TerminalProgress,
+    *,
+    validate_terminal_status: bool = False,
+) -> tuple[dict[str, Any], Path]:
+    result["finished_at"] = utc_now()
+    if validate_terminal_status and result["terminal_status"] not in TERMINAL_STATUSES:
         raise ExecutorError("invalid terminal result status")
     progress.phase(5, "writing execution evidence")
     write_result_exclusive(destination, result)
@@ -673,54 +422,63 @@ def execute_interrogation(
     return result, destination
 
 
+def execute_interrogation(
+    operation: Mapping[str, Any],
+    progress: TerminalProgress | None = None,
+) -> tuple[dict[str, Any], Path]:
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress)
 
-def capture_repository_state(
-    root: Path, supervisor: CommandSupervisor
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-
-    def git(*args: str) -> str:
-        record = supervisor.run(
-            ["git", *args], root, timeout_seconds=30, phase="repository state"
+    try:
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        records.append(command_record_dict(record))
-        if record.exit_code != 0:
-            raise ExecutorError(record.stderr.strip() or "git state command failed")
-        return record.stdout.strip()
+        progress.phase(3, "collecting repository evidence")
+        result["ending_state"] = result["starting_state"]
+        progress.phase(4, "verifying resulting state")
+        progress.check("read-only repository state preserved")
+        result["terminal_status"] = "local-mutation-completed"
+        result["safest_next_interaction"] = (
+            "Review the returned read-only repository evidence."
+        )
+    except GuardError as exc:
+        _record_guard_failure(result, exc)
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
-    state = {
-        "root": str(root),
-        "origin": git("remote", "get-url", "origin"),
-        "branch": git("branch", "--show-current"),
-        "head": git("rev-parse", "HEAD"),
-    }
-    status = git("status", "--porcelain=v1")
-    state["clean"] = not bool(status)
-    state["status"] = status.splitlines()
-    return records, state
 
 
 def execute_local_file_operation(
     operation: Mapping[str, Any],
     progress: TerminalProgress | None = None,
 ) -> tuple[dict[str, Any], Path]:
-    progress = progress or TerminalProgress()
-    progress.phase(2, "evaluating repository guards")
-    result = base_result(operation)
-    result["mutation"]["authorized"] = True
-    supervisor = CommandSupervisor()
-    repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
-    destination = result_destination(operation, repository_root)
-    if destination.exists():
-        raise ResultConflictError(f"result already exists: {destination}")
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress, mutation_authorized=True)
 
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
         progress.phase(3, "performing bounded file mutation")
         result["mutation"]["attempted"] = True
         records = apply_local_file_operations(
@@ -732,44 +490,33 @@ def execute_local_file_operation(
         result["mutation"]["completed"] = True
         progress.check("authorized file operations completed")
         progress.phase(4, "verifying resulting state")
-        ending_commands, ending_state = capture_repository_state(root, supervisor)
-        result["commands"].extend(ending_commands)
-        result["ending_state"] = ending_state
+        _capture_ending_state(result, root, supervisor)
         result["terminal_status"] = "local-mutation-completed"
         result["safest_next_interaction"] = (
             "Review read-after-write evidence and repository state."
         )
     except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
+        _record_guard_failure(result, exc)
     except LocalFileOperationError as exc:
         result["file_operations"] = exc.records
         result["mutation"]["observed"] = exc.mutation_observed
-        result["terminal_status"] = (
-            "partial-local-mutation"
-            if exc.mutation_observed
-            else "pre-mutation-failed"
+        _record_operation_failure(
+            result,
+            exc,
+            repository_root,
+            supervisor,
+            terminal_status=(
+                "partial-local-mutation"
+                if exc.mutation_observed
+                else "pre-mutation-failed"
+            ),
         )
-        result["diagnostics"].append(str(exc))
-        try:
-            ending_commands, ending_state = capture_repository_state(
-                repository_root, supervisor
-            )
-            result["commands"].extend(ending_commands)
-            result["ending_state"] = ending_state
-        except ExecutorError as state_exc:
-            result["diagnostics"].append(
-                f"ending-state capture failed: {state_exc}"
-            )
-    finally:
-        result["finished_at"] = utc_now()
-
-    if result["terminal_status"] not in TERMINAL_STATUSES:
-        raise ExecutorError("invalid terminal result status")
-    progress.phase(5, "writing execution evidence")
-    write_result_exclusive(destination, result)
-    progress.check("result artifact created without overwrite")
-    return result, destination
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
 
 
@@ -778,23 +525,21 @@ def execute_git_publication(
     operation: Mapping[str, Any],
     progress: TerminalProgress | None = None,
 ) -> tuple[dict[str, Any], Path]:
-    progress = progress or TerminalProgress()
-    progress.phase(2, "evaluating repository guards")
-    result = base_result(operation)
-    result["mutation"]["authorized"] = True
-    supervisor = CommandSupervisor()
-    repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
-    destination = result_destination(operation, repository_root)
-    if destination.exists():
-        raise ResultConflictError(f"result already exists: {destination}")
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress, mutation_authorized=True)
 
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
         progress.phase(3, "performing publication")
         result["mutation"]["attempted"] = True
         publication = publish_git_changes(
@@ -811,43 +556,34 @@ def execute_git_publication(
         progress.check("commit and requested publication completed")
         result["mutation"]["observed"] = True
         result["mutation"]["completed"] = True
-        ending_commands, ending_state = capture_repository_state(root, supervisor)
-        result["commands"].extend(ending_commands)
-        result["ending_state"] = ending_state
+        _capture_ending_state(result, root, supervisor)
         result["terminal_status"] = "publication-completed"
         result["safest_next_interaction"] = (
             "Review commit and remote verification evidence."
         )
     except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
+        _record_guard_failure(result, exc)
     except GitPublicationError as exc:
         result["publication"] = exc.evidence
         result["commands"].extend(exc.commands)
         result["mutation"]["observed"] = exc.mutation_observed
-        result["terminal_status"] = (
-            "partial-publication"
-            if exc.mutation_observed
-            else "pre-publication-failed"
+        _record_operation_failure(
+            result,
+            exc,
+            repository_root,
+            supervisor,
+            terminal_status=(
+                "partial-publication"
+                if exc.mutation_observed
+                else "pre-publication-failed"
+            ),
         )
-        result["diagnostics"].append(str(exc))
-        try:
-            ending_commands, ending_state = capture_repository_state(
-                repository_root, supervisor
-            )
-            result["commands"].extend(ending_commands)
-            result["ending_state"] = ending_state
-        except ExecutorError as state_exc:
-            result["diagnostics"].append(
-                f"ending-state capture failed: {state_exc}"
-            )
-    finally:
-        result["finished_at"] = utc_now()
-
-    progress.phase(5, "writing execution evidence")
-    write_result_exclusive(destination, result)
-    progress.check("result artifact created without overwrite")
-    return result, destination
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
 
 
@@ -855,22 +591,21 @@ def execute_governed_validation(
     operation: Mapping[str, Any],
     progress: TerminalProgress | None = None,
 ) -> tuple[dict[str, Any], Path]:
-    progress = progress or TerminalProgress()
-    progress.phase(2, "evaluating repository guards")
-    result = base_result(operation)
-    supervisor = CommandSupervisor()
-    repository_root = Path(operation["repository"]["root"]).expanduser().resolve()
-    destination = result_destination(operation, repository_root)
-    if destination.exists():
-        raise ResultConflictError(f"result already exists: {destination}")
+    (
+        progress,
+        result,
+        supervisor,
+        repository_root,
+        destination,
+    ) = _prepare_execution(operation, progress)
 
     try:
-        root, command_records, state = evaluate_repository_guards(
-            operation, supervisor, progress
+        root = _evaluate_guarded_repository(
+            operation,
+            result,
+            supervisor,
+            progress,
         )
-        result["commands"].extend(command_records)
-        result["starting_state"] = state
-        progress.check("repository identity and exact state verified")
         progress.phase(3, "running governed validation")
         evidence = run_governed_validation(
             root,
@@ -883,38 +618,37 @@ def execute_governed_validation(
         result["validation_evidence"] = evidence
         progress.check("all requested validation profiles passed")
         progress.phase(4, "verifying resulting state")
-        ending_commands, ending_state = capture_repository_state(root, supervisor)
-        result["commands"].extend(ending_commands)
-        result["ending_state"] = ending_state
+        _capture_ending_state(result, root, supervisor)
         result["terminal_status"] = "validation-completed"
         result["safest_next_interaction"] = (
             "Review governed validation evidence before successor mutation."
         )
     except GuardError as exc:
-        result["terminal_status"] = "guard-failed"
-        result["diagnostics"].append(str(exc))
+        _record_guard_failure(result, exc)
     except GovernedValidationError as exc:
         result["validation_evidence"] = exc.evidence
         result["commands"].extend(exc.commands)
-        result["terminal_status"] = "pre-mutation-failed"
-        result["diagnostics"].append(str(exc))
-        try:
-            ending_commands, ending_state = capture_repository_state(
-                repository_root, supervisor
-            )
-            result["commands"].extend(ending_commands)
-            result["ending_state"] = ending_state
-        except ExecutorError as state_exc:
-            result["diagnostics"].append(
-                f"ending-state capture failed: {state_exc}"
-            )
-    finally:
-        result["finished_at"] = utc_now()
+        _record_operation_failure(
+            result,
+            exc,
+            repository_root,
+            supervisor,
+            terminal_status="pre-mutation-failed",
+        )
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
-    progress.phase(5, "writing execution evidence")
-    write_result_exclusive(destination, result)
-    progress.check("result artifact created without overwrite")
-    return result, destination
+
+OPERATION_HANDLERS = {
+    "repository-interrogation": execute_interrogation,
+    "local-file-operations": execute_local_file_operation,
+    "git-publication": execute_git_publication,
+    "governed-validation": execute_governed_validation,
+}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -946,14 +680,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Result     : {destination}", flush=True)
         print("", flush=True)
 
-        if operation["operation_type"] == "repository-interrogation":
-            result, destination = execute_interrogation(operation, progress)
-        elif operation["operation_type"] == "local-file-operations":
-            result, destination = execute_local_file_operation(operation, progress)
-        elif operation["operation_type"] == "git-publication":
-            result, destination = execute_git_publication(operation, progress)
-        else:
-            result, destination = execute_governed_validation(operation, progress)
+        handler = OPERATION_HANDLERS[operation["operation_type"]]
+        result, destination = handler(operation, progress)
 
         print("", flush=True)
         print("-" * 60, flush=True)
@@ -965,12 +693,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Next step:", flush=True)
         print(f"  {result['safest_next_interaction']}", flush=True)
 
-        if result["terminal_status"] not in {
-            "local-mutation-completed",
-            "commit-completed",
-            "publication-completed",
-            "validation-completed",
-        }:
+        if result["terminal_status"] not in SUCCESS_TERMINAL_STATUSES:
             return 1
         return 0
     except ExecutorError as exc:

@@ -1,5 +1,5 @@
 """Repository-native governed executor core."""
 
-from .core import EXECUTOR_VERSION
+EXECUTOR_VERSION = "0.9.4"
 
 __all__ = ["EXECUTOR_VERSION"]

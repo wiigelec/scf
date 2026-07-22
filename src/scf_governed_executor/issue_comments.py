@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 from urllib.parse import urlsplit
 
 from . import core as core_module
+from . import strict_validation
 
 
 ISSUE_COMMENT_OPERATION_TYPE = "issue-comment-mutation"
@@ -31,10 +32,11 @@ class IssueCommentError(core_module.ExecutorError):
         self.mutation_observed = mutation_observed
 
 
+_STRICT = strict_validation.StrictValidator(core_module.SchemaError)
+
+
 def _object(value: Any, location: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise core_module.SchemaError(f"{location} must be an object")
-    return value
+    return _STRICT.object(value, location)
 
 
 def _exact(
@@ -43,16 +45,7 @@ def _exact(
     required: set[str] | frozenset[str],
     location: str,
 ) -> None:
-    unknown = set(value) - set(allowed)
-    missing = set(required) - set(value)
-    if unknown:
-        raise core_module.SchemaError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise core_module.SchemaError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def _body(value: Any, location: str) -> str:

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from . import strict_validation
+
 
 INPUT_FIELDS = {"profiles"}
 EXPECTED_FIELDS = {"profiles"}
@@ -34,22 +36,16 @@ class GovernedValidationError(RuntimeError):
         self.evidence = dict(evidence or {})
 
 
+_STRICT = strict_validation.StrictValidator(GovernedValidationError)
+
+
 def _exact(
     value: Mapping[str, Any],
     allowed: set[str],
     required: set[str],
     location: str,
 ) -> None:
-    unknown = set(value) - allowed
-    missing = required - set(value)
-    if unknown:
-        raise GovernedValidationError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise GovernedValidationError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def validate_governed_validation_inputs(

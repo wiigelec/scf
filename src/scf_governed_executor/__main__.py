@@ -8,6 +8,7 @@ from typing import Any, Mapping, Sequence
 
 from . import branch_create
 from . import core as core_module
+from . import strict_validation
 from . import lifecycle
 from . import local_files
 from . import issue_comments
@@ -21,9 +22,11 @@ PROTECTED_EXECUTOR_PATHS = frozenset(
         "src/scf_governed_executor/__init__.py",
         "src/scf_governed_executor/__main__.py",
         "src/scf_governed_executor/core.py",
+        "src/scf_governed_executor/errors.py",
         "src/scf_governed_executor/git_publication.py",
         "src/scf_governed_executor/local_files.py",
         "src/scf_governed_executor/lifecycle.py",
+        "src/scf_governed_executor/runtime.py",
         "src/scf_governed_executor/issue_comments.py",
         "src/scf_governed_executor/self_update.py",
         "src/scf_governed_executor/validation.py",
@@ -67,10 +70,11 @@ def _operation_type(argv: Sequence[str]) -> str | None:
     return operation_type if isinstance(operation_type, str) else None
 
 
+_STRICT = strict_validation.StrictValidator(core_module.SchemaError)
+
+
 def _object(value: Any, location: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise core_module.SchemaError(f"{location} must be an object")
-    return value
+    return _STRICT.object(value, location)
 
 
 def _exact(
@@ -79,16 +83,7 @@ def _exact(
     required: set[str] | frozenset[str],
     location: str,
 ) -> None:
-    unknown = set(value) - set(allowed)
-    missing = set(required) - set(value)
-    if unknown:
-        raise core_module.SchemaError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise core_module.SchemaError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def _string(value: Any, location: str) -> str:

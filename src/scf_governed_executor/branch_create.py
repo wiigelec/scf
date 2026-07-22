@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from . import core as core_module
+from . import strict_validation
 
 
 BRANCH_CREATE_OPERATION_TYPE = "git-branch-create"
@@ -14,10 +15,10 @@ BRANCH = re.compile(
 )
 
 
+_STRICT = strict_validation.StrictValidator(core_module.SchemaError)
+
 def _object(value: Any, location: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise core_module.SchemaError(f"{location} must be an object")
-    return value
+    return _STRICT.object(value, location)
 
 
 def _exact(
@@ -26,16 +27,7 @@ def _exact(
     required: set[str],
     location: str,
 ) -> None:
-    unknown = set(value) - allowed
-    missing = required - set(value)
-    if unknown:
-        raise core_module.SchemaError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise core_module.SchemaError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def _record(record: Any) -> dict[str, Any]:
