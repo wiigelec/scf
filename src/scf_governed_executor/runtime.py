@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -12,7 +13,12 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 from urllib.parse import urlsplit, urlunsplit
 
-from .errors import CommandTimeoutError, ExecutorError
+from .errors import (
+    CommandTimeoutError,
+    ExecutorError,
+    GuardError,
+    ResultConflictError,
+)
 
 
 SECRET_NAME = re.compile(
@@ -241,3 +247,109 @@ def command_record_dict(record: CommandRecord) -> dict[str, Any]:
         "redaction_events": record.redaction_events,
         "stdin": dict(record.stdin),
     }
+
+
+def evaluate_repository_guards(
+    operation: Mapping[str, Any],
+    supervisor: CommandSupervisor,
+    progress: TerminalProgress | None = None,
+) -> tuple[Path, list[dict[str, Any]], dict[str, Any]]:
+    repository = operation["repository"]
+    guards = operation["guards"]
+    root = Path(repository["root"]).expanduser().resolve()
+    if not root.is_dir():
+        raise GuardError("repository root does not exist")
+
+    records: list[dict[str, Any]] = []
+
+    def git(*args: str) -> str:
+        record = supervisor.run(
+            ["git", *args],
+            root,
+            timeout_seconds=30,
+            phase=(
+                progress.heartbeat_phase("evaluating repository guards")
+                if progress is not None
+                else "repository guard"
+            ),
+        )
+        records.append(command_record_dict(record))
+        if record.exit_code != 0:
+            raise GuardError(record.stderr.strip() or "git guard command failed")
+        return record.stdout.strip()
+
+    actual_root = Path(git("rev-parse", "--show-toplevel")).resolve()
+    if actual_root != root:
+        raise GuardError("repository root mismatch")
+    actual_origin = git("remote", "get-url", "origin")
+    if actual_origin != repository["origin"]:
+        raise GuardError("repository origin mismatch")
+    actual_branch = git("branch", "--show-current")
+    if actual_branch != guards["branch"]:
+        raise GuardError("repository branch mismatch")
+    actual_head = git("rev-parse", "HEAD")
+    if actual_head != guards["head"]:
+        raise GuardError("repository HEAD mismatch")
+    status = git("status", "--porcelain=v1")
+    actual_clean = not bool(status)
+    if actual_clean != guards["clean"]:
+        raise GuardError("repository clean-state mismatch")
+
+    state = {
+        "root": str(root),
+        "origin": actual_origin,
+        "branch": actual_branch,
+        "head": actual_head,
+        "clean": actual_clean,
+        "status": status.splitlines(),
+    }
+    return root, records, state
+
+
+def result_destination(operation: Mapping[str, Any], repository_root: Path) -> Path:
+    configured = operation["result"]
+    directory = Path(configured["directory"]).expanduser().resolve()
+    if not directory.is_dir():
+        raise ResultConflictError("result directory does not exist")
+    try:
+        directory.relative_to(repository_root)
+    except ValueError:
+        pass
+    else:
+        raise ResultConflictError("result directory must be outside repository")
+    return directory / configured["filename"]
+
+
+def write_result_exclusive(path: Path, result: Mapping[str, Any]) -> None:
+    try:
+        with path.open("x", encoding="utf-8") as handle:
+            json.dump(result, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+    except FileExistsError as exc:
+        raise ResultConflictError(f"result already exists: {path}") from exc
+
+
+def capture_repository_state(
+    root: Path, supervisor: CommandSupervisor
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+
+    def git(*args: str) -> str:
+        record = supervisor.run(
+            ["git", *args], root, timeout_seconds=30, phase="repository state"
+        )
+        records.append(command_record_dict(record))
+        if record.exit_code != 0:
+            raise ExecutorError(record.stderr.strip() or "git state command failed")
+        return record.stdout.strip()
+
+    state = {
+        "root": str(root),
+        "origin": git("remote", "get-url", "origin"),
+        "branch": git("branch", "--show-current"),
+        "head": git("rev-parse", "HEAD"),
+    }
+    status = git("status", "--porcelain=v1")
+    state["clean"] = not bool(status)
+    state["status"] = status.splitlines()
+    return records, state
