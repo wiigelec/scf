@@ -34,6 +34,8 @@ from .core import (
     write_result_exclusive,
 )
 
+from . import strict_validation
+
 
 SELF_UPDATE_OPERATION_TYPE = "executor-self-update"
 SELF_UPDATE_INPUT_FIELDS = {
@@ -84,28 +86,20 @@ class SelfUpdateError(ExecutorError):
         self.rollback_verified = rollback_verified
 
 
+_STRICT = strict_validation.StrictValidator(SchemaError)
+
+
 def _exact_fields(
     value: Mapping[str, Any],
     allowed: set[str] | frozenset[str],
     required: set[str] | frozenset[str],
     location: str,
 ) -> None:
-    unknown = set(value) - set(allowed)
-    missing = set(required) - set(value)
-    if unknown:
-        raise SchemaError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise SchemaError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def _object(value: Any, location: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise SchemaError(f"{location} must be an object")
-    return value
+    return _STRICT.object(value, location)
 
 
 def _string(value: Any, location: str) -> str:

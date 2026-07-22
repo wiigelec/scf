@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from . import strict_validation
+
 
 SHA1 = re.compile(r"^[0-9a-f]{40}$")
 PATH = re.compile(r"^[A-Za-z0-9._/@+-][A-Za-z0-9._/@+ -]*$")
@@ -27,22 +29,16 @@ class GitPublicationError(RuntimeError):
         self.mutation_observed = mutation_observed
 
 
+_STRICT = strict_validation.StrictValidator(GitPublicationError)
+
+
 def _exact(
     value: Mapping[str, Any],
     allowed: set[str],
     required: set[str],
     location: str,
 ) -> None:
-    unknown = set(value) - allowed
-    missing = required - set(value)
-    if unknown:
-        raise GitPublicationError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise GitPublicationError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def _path(value: Any, location: str) -> str:
