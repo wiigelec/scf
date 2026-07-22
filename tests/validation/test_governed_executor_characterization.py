@@ -254,20 +254,29 @@ class GovernedExecutorCharacterizationTests(unittest.TestCase):
         launcher = (ROOT / "scripts" / "governed-execute").read_text(
             encoding="utf-8"
         )
-        versions = dict(
-            re.findall(
-                r'^(EXECUTOR_VERSION|LEGACY_EXECUTOR_VERSION) = "([0-9]+\.[0-9]+\.[0-9]+)"$',
-                launcher,
-                flags=re.MULTILINE,
-            )
+        package_init = (
+            ROOT / "src" / "scf_governed_executor" / "__init__.py"
+        ).read_text(encoding="utf-8")
+        current_match = re.search(
+            r'^EXECUTOR_VERSION = "([0-9]+\.[0-9]+\.[0-9]+)"$',
+            package_init,
+            flags=re.MULTILINE,
         )
-        self.assertEqual(
-            set(versions),
-            {"EXECUTOR_VERSION", "LEGACY_EXECUTOR_VERSION"},
+        legacy_match = re.search(
+            r'^LEGACY_EXECUTOR_VERSION = "([0-9]+\.[0-9]+\.[0-9]+)"$',
+            launcher,
+            flags=re.MULTILINE,
         )
-        self.assertNotEqual(
-            versions["EXECUTOR_VERSION"],
-            versions["LEGACY_EXECUTOR_VERSION"],
+        self.assertIsNotNone(current_match)
+        self.assertIsNotNone(legacy_match)
+        self.assertNotEqual(current_match.group(1), legacy_match.group(1))
+        self.assertIn(
+            "from scf_governed_executor import EXECUTOR_VERSION",
+            launcher,
+        )
+        self.assertNotRegex(
+            launcher,
+            r'^EXECUTOR_VERSION = "',
         )
         dispatch_body = launcher.split("CURRENT_DISPATCH", 1)[1].split(
             "def _unsupported", 1

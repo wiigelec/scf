@@ -19,10 +19,10 @@ os.environ["PYTHONPATH"] = (
     else SOURCE_PATH + os.pathsep + existing_pythonpath
 )
 
+from scf_governed_executor import EXECUTOR_VERSION
 from scf_governed_executor import core as core_module
 
 
-EXECUTOR_VERSION = "0.8.5"
 LEGACY_EXECUTOR_VERSION = "0.7.0"
 
 
