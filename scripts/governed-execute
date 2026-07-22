@@ -21,7 +21,7 @@ os.environ["PYTHONPATH"] = (
 from scf_governed_executor import core as core_module
 
 
-EXECUTOR_VERSION = "0.8.3"
+EXECUTOR_VERSION = "0.8.4"
 LEGACY_EXECUTOR_VERSION = "0.7.0"
 
 
@@ -64,8 +64,8 @@ def main() -> int:
     if version == EXECUTOR_VERSION:
         core_module.EXECUTOR_VERSION = EXECUTOR_VERSION
         if operation_type == "git-publication":
-            from scf_governed_executor import combined_publication
-            return combined_publication.main([str(operation_path)])
+            from scf_governed_executor import resumable_publication
+            return resumable_publication.main([str(operation_path)])
         if operation_type == "development-session-initialize":
             from scf_governed_executor import session_initialize
             return session_initialize.main([str(operation_path)])
