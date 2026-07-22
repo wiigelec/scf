@@ -17,6 +17,7 @@ from .errors import (
     ResultConflictError,
     SchemaError,
 )
+from . import strict_validation
 from .runtime import (
     CommandRecord,
     CommandSupervisor,
@@ -109,28 +110,20 @@ def operation_digest(operation: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical_json(body)).hexdigest()
 
 
+_STRICT = strict_validation.StrictValidator(SchemaError)
+
+
 def _require_exact_fields(
     value: Mapping[str, Any],
     allowed: set[str],
     required: set[str],
     location: str,
 ) -> None:
-    unknown = set(value) - allowed
-    missing = required - set(value)
-    if unknown:
-        raise SchemaError(
-            f"{location} contains unknown fields: {', '.join(sorted(unknown))}"
-        )
-    if missing:
-        raise SchemaError(
-            f"{location} is missing required fields: {', '.join(sorted(missing))}"
-        )
+    _STRICT.exact_fields(value, allowed, required, location)
 
 
 def _require_object(value: Any, location: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise SchemaError(f"{location} must be an object")
-    return value
+    return _STRICT.object(value, location)
 
 
 def _require_bool_map(value: Any, fields: set[str], location: str) -> dict[str, bool]:
