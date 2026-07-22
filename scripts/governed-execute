@@ -108,7 +108,6 @@ def main() -> int:
     operation_type, version = _operation_metadata(operation_path)
 
     if version == EXECUTOR_VERSION:
-        core_module.EXECUTOR_VERSION = EXECUTOR_VERSION
         handler = CURRENT_DISPATCH.get(operation_type or "")
         return handler(operation_path) if handler is not None else _unsupported(operation_type)
 

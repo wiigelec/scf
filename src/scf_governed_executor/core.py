@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 from urllib.parse import urlsplit, urlunsplit
 
+from . import EXECUTOR_VERSION
+
 from .local_files import (
     LocalFileOperationError,
     apply_local_file_operations,
@@ -32,7 +34,6 @@ from .validation import (
 )
 
 
-EXECUTOR_VERSION = "0.6.0"
 OPERATION_SCHEMA_VERSION = 1
 RESULT_SCHEMA_VERSION = 1
 TERMINAL_STATUSES = {

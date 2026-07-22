@@ -278,6 +278,18 @@ class GovernedExecutorCharacterizationTests(unittest.TestCase):
             launcher,
             r'^EXECUTOR_VERSION = "',
         )
+        self.assertNotIn(
+            "core_module.EXECUTOR_VERSION = EXECUTOR_VERSION",
+            launcher,
+        )
+        core_source = (
+            ROOT / "src" / "scf_governed_executor" / "core.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("from . import EXECUTOR_VERSION", core_source)
+        self.assertNotRegex(
+            core_source,
+            r'^EXECUTOR_VERSION = "',
+        )
         dispatch_body = launcher.split("CURRENT_DISPATCH", 1)[1].split(
             "def _unsupported", 1
         )[0]

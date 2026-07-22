@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scf_governed_executor import EXECUTOR_VERSION
 from scf_governed_executor.core import AUTHORIZATION_FIELDS, SchemaError
 from scf_governed_executor.issue_comments import (
     ISSUE_COMMENT_OPERATION_TYPE,
@@ -104,7 +105,7 @@ class IssueCommentContractTests(unittest.TestCase):
             {
                 "schema_version": 1,
                 "operation_id": "test.issue-37.issue-comment",
-                "executor_version": "0.6.0",
+                "executor_version": EXECUTOR_VERSION,
                 "operation_digest": "",
                 "result": {
                     "directory": tempfile.gettempdir(),
