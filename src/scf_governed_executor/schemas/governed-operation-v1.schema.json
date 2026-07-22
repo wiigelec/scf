@@ -1,0 +1,547 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wiigelec/scf/schemas/governed-operation-v1.schema.json",
+  "title": "SCF governed operation version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_id",
+    "operation_type",
+    "executor_version",
+    "operation_digest",
+    "repository",
+    "guards",
+    "authorization",
+    "inputs",
+    "expected_mutations",
+    "validation",
+    "publication",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "operation_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$"
+    },
+    "operation_type": {
+      "enum": [
+        "repository-interrogation",
+        "local-file-operations",
+        "git-publication",
+        "governed-validation",
+        "executor-self-update",
+        "git-stage",
+        "git-commit",
+        "git-push",
+        "pull-request-create"
+      ]
+    },
+    "executor_version": {
+      "const": "0.3.1"
+    },
+    "operation_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "origin"
+      ],
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "guards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch",
+        "head",
+        "clean"
+      ],
+      "properties": {
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "head": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "clean": {
+          "type": "boolean"
+        }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interrogate",
+        "edit",
+        "validate",
+        "stage",
+        "commit",
+        "push",
+        "issue",
+        "pull_request",
+        "review",
+        "merge",
+        "close_issue"
+      ],
+      "properties": {
+        "interrogate": {
+          "type": "boolean"
+        },
+        "edit": {
+          "type": "boolean"
+        },
+        "validate": {
+          "type": "boolean"
+        },
+        "stage": {
+          "type": "boolean"
+        },
+        "commit": {
+          "type": "boolean"
+        },
+        "push": {
+          "type": "boolean"
+        },
+        "issue": {
+          "type": "boolean"
+        },
+        "pull_request": {
+          "type": "boolean"
+        },
+        "review": {
+          "type": "boolean"
+        },
+        "merge": {
+          "type": "boolean"
+        },
+        "close_issue": {
+          "type": "boolean"
+        }
+      }
+    },
+    "inputs": {
+      "type": "object"
+    },
+    "expected_mutations": {
+      "type": "object"
+    },
+    "validation": {
+      "type": "object"
+    },
+    "publication": {
+      "type": "object"
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "filename"
+      ],
+      "properties": {
+        "directory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "filename": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{7,191}\\.result\\.json$"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "empty": {
+      "type": "object",
+      "maxProperties": 0
+    },
+    "pathList": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "authBase": {
+      "properties": {
+        "interrogate": {
+          "const": true
+        }
+      }
+    },
+    "authStage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/authBase"
+        }
+      ],
+      "properties": {
+        "stage": {
+          "const": true
+        },
+        "commit": {
+          "const": false
+        },
+        "push": {
+          "const": false
+        },
+        "pull_request": {
+          "const": false
+        },
+        "edit": {
+          "const": false
+        },
+        "validate": {
+          "const": false
+        }
+      }
+    },
+    "authCommit": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/authBase"
+        }
+      ],
+      "properties": {
+        "stage": {
+          "const": false
+        },
+        "commit": {
+          "const": true
+        },
+        "push": {
+          "const": false
+        },
+        "pull_request": {
+          "const": false
+        },
+        "edit": {
+          "const": false
+        },
+        "validate": {
+          "const": false
+        }
+      }
+    },
+    "authPush": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/authBase"
+        }
+      ],
+      "properties": {
+        "stage": {
+          "const": false
+        },
+        "commit": {
+          "const": false
+        },
+        "push": {
+          "const": true
+        },
+        "pull_request": {
+          "const": false
+        },
+        "edit": {
+          "const": false
+        },
+        "validate": {
+          "const": false
+        }
+      }
+    },
+    "authPr": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/authBase"
+        }
+      ],
+      "properties": {
+        "stage": {
+          "const": false
+        },
+        "commit": {
+          "const": false
+        },
+        "push": {
+          "const": false
+        },
+        "pull_request": {
+          "const": true
+        },
+        "edit": {
+          "const": false
+        },
+        "validate": {
+          "const": false
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation_type": {
+            "const": "git-stage"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "$ref": "#/$defs/authStage"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "paths"
+            ],
+            "properties": {
+              "paths": {
+                "$ref": "#/$defs/pathList"
+              }
+            }
+          },
+          "expected_mutations": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "paths",
+              "head"
+            ],
+            "properties": {
+              "paths": {
+                "$ref": "#/$defs/pathList"
+              },
+              "head": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          },
+          "validation": {
+            "$ref": "#/$defs/empty"
+          },
+          "publication": {
+            "$ref": "#/$defs/empty"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation_type": {
+            "const": "git-commit"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "$ref": "#/$defs/authCommit"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "message"
+            ],
+            "properties": {
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              }
+            }
+          },
+          "expected_mutations": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "paths",
+              "parent_head"
+            ],
+            "properties": {
+              "paths": {
+                "$ref": "#/$defs/pathList"
+              },
+              "parent_head": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          },
+          "validation": {
+            "$ref": "#/$defs/empty"
+          },
+          "publication": {
+            "$ref": "#/$defs/empty"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation_type": {
+            "const": "git-push"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "$ref": "#/$defs/authPush"
+          },
+          "guards": {
+            "properties": {
+              "clean": {
+                "const": true
+              }
+            }
+          },
+          "inputs": {
+            "$ref": "#/$defs/empty"
+          },
+          "expected_mutations": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "head",
+              "remote",
+              "branch"
+            ],
+            "properties": {
+              "head": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "remote": {
+                "type": "string",
+                "minLength": 1
+              },
+              "branch": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "validation": {
+            "$ref": "#/$defs/empty"
+          },
+          "publication": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "remote",
+              "branch"
+            ],
+            "properties": {
+              "remote": {
+                "type": "string",
+                "minLength": 1
+              },
+              "branch": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation_type": {
+            "const": "pull-request-create"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "$ref": "#/$defs/authPr"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "base",
+              "head",
+              "title",
+              "body",
+              "draft"
+            ],
+            "properties": {
+              "base": {
+                "type": "string",
+                "minLength": 1
+              },
+              "head": {
+                "type": "string",
+                "minLength": 1
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "body": {
+                "type": "string"
+              },
+              "draft": {
+                "type": "boolean"
+              }
+            }
+          },
+          "expected_mutations": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "head_sha"
+            ],
+            "properties": {
+              "head_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          },
+          "validation": {
+            "$ref": "#/$defs/empty"
+          },
+          "publication": {
+            "$ref": "#/$defs/empty"
+          }
+        }
+      }
+    }
+  ]
+}

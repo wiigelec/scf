@@ -346,7 +346,7 @@ class GovernedExecutorCharacterizationTests(unittest.TestCase):
             core.EXECUTOR_VERSION = original
 
     def test_launcher_preserves_closed_current_and_legacy_routing(self) -> None:
-        launcher = (ROOT / "scripts" / "governed-execute").read_text(
+        launcher = (ROOT / "src" / "scf_governed_executor" / "launcher.py").read_text(
             encoding="utf-8"
         )
         package_init = (

@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = ROOT / "docs" / "GOVERNED-EXECUTOR.md"
+SPEC = ROOT / "src" / "scf_governed_executor" / "docs" / "GOVERNED-EXECUTOR.md"
 
 
 class GovernedExecutorContractTests(unittest.TestCase):
@@ -103,6 +103,6 @@ class GovernedExecutorTransitionContractTests(unittest.TestCase):
         self.assertIn("Unsupported classes remain blocked", text)
 
     def test_executor_spec_states_effective_boundary(self) -> None:
-        text = (ROOT / "docs/GOVERNED-EXECUTOR.md").read_text()
+        text = (ROOT / "src/scf_governed_executor/docs/GOVERNED-EXECUTOR.md").read_text()
         self.assertIn("This specification is effective repository policy", text)
         self.assertIn("Unsupported operations fail closed", text)

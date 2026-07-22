@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wiigelec/scf/schemas/governed-result-v1.schema.json",
+  "title": "SCF governed result version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "executor_version",
+    "result_id",
+    "operation_id",
+    "operation_digest",
+    "operation_type",
+    "started_at",
+    "finished_at",
+    "terminal_status",
+    "mutation",
+    "commands",
+    "starting_state",
+    "ending_state",
+    "redaction_events",
+    "diagnostics",
+    "file_operations",
+    "publication",
+    "safest_next_interaction",
+    "validation_evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "executor_version": {
+      "const": "0.3.1"
+    },
+    "result_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "operation_id": {
+      "type": "string"
+    },
+    "operation_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "operation_type": {
+      "enum": [
+        "repository-interrogation",
+        "local-file-operations",
+        "git-publication",
+        "governed-validation",
+        "executor-self-update",
+        "git-stage",
+        "git-commit",
+        "git-push",
+        "pull-request-create"
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "terminal_status": {
+      "enum": [
+        "guard-failed",
+        "pre-mutation-failed",
+        "partial-local-mutation",
+        "partial-remote-mutation",
+        "post-mutation-validation-failed",
+        "local-mutation-completed",
+        "commit-completed",
+        "publication-completed",
+        "validation-completed"
+      ]
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorized",
+        "attempted",
+        "observed",
+        "completed"
+      ],
+      "properties": {
+        "authorized": {
+          "type": "boolean"
+        },
+        "attempted": {
+          "type": "boolean"
+        },
+        "observed": {
+          "type": "boolean"
+        },
+        "completed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "commands": {
+      "type": "array"
+    },
+    "starting_state": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "ending_state": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "redaction_events": {
+      "type": "array"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_operations": {
+      "type": "array"
+    },
+    "publication": {
+      "type": "object"
+    },
+    "safest_next_interaction": {
+      "type": "string"
+    },
+    "validation_evidence": {
+      "type": "object"
+    }
+  }
+}
