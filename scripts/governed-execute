@@ -21,7 +21,7 @@ os.environ["PYTHONPATH"] = (
 from scf_governed_executor import core as core_module
 
 
-EXECUTOR_VERSION = "0.8.2"
+EXECUTOR_VERSION = "0.8.3"
 LEGACY_EXECUTOR_VERSION = "0.7.0"
 
 
@@ -72,6 +72,9 @@ def main() -> int:
         if operation_type == "executor-self-update":
             from scf_governed_executor import self_update
             return self_update.main([str(operation_path)])
+        if operation_type == "issue-create":
+            from scf_governed_executor import issue_create
+            return issue_create.main([str(operation_path)])
         if operation_type == "repository-interrogation":
             return core_module.main([str(operation_path)])
         print(
