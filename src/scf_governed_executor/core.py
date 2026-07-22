@@ -55,6 +55,8 @@ TERMINAL_STATUSES = {
     "pre-mutation-failed",
     "partial-local-mutation",
     "partial-remote-mutation",
+    "partial-publication",
+    "pre-publication-failed",
     "post-mutation-validation-failed",
     "local-mutation-completed",
     "commit-completed",
@@ -543,7 +545,12 @@ def execute_git_publication(
     finally:
         result["finished_at"] = utc_now()
 
-    return _finalize_execution(result, destination, progress)
+    return _finalize_execution(
+        result,
+        destination,
+        progress,
+        validate_terminal_status=True,
+    )
 
 
 

@@ -154,6 +154,8 @@ class GovernedExecutorCharacterizationTests(unittest.TestCase):
                 "pre-mutation-failed",
                 "partial-local-mutation",
                 "partial-remote-mutation",
+                "partial-publication",
+                "pre-publication-failed",
                 "post-mutation-validation-failed",
                 "local-mutation-completed",
                 "commit-completed",
