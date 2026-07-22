@@ -15,8 +15,10 @@ if str(SOURCE) not in sys.path:
     sys.path.insert(0, str(SOURCE))
 
 from scf_governed_executor import core
+from scf_governed_executor import issue_comments
 from scf_governed_executor import local_files
 from scf_governed_executor import session_initialize
+from scf_governed_executor import strict_validation
 
 
 AUTHORIZATION_FIELDS = {
@@ -47,6 +49,66 @@ def operation_digest(operation: dict[str, object]) -> str:
 
 
 class GovernedExecutorCharacterizationTests(unittest.TestCase):
+    def test_strict_object_validators_preserve_shared_diagnostics(self) -> None:
+        validators = (
+            core._require_object,
+            session_initialize._object,
+            issue_comments._object,
+            lambda value, location: strict_validation.require_object(
+                value,
+                location,
+                error_type=core.SchemaError,
+            ),
+        )
+        for validator in validators:
+            with self.subTest(validator=validator.__module__):
+                with self.assertRaisesRegex(
+                    core.SchemaError,
+                    r"^inputs must be an object$",
+                ):
+                    validator([], "inputs")
+                value = {"field": "value"}
+                self.assertIs(validator(value, "inputs"), value)
+
+    def test_strict_exact_field_validators_preserve_shared_diagnostics(self) -> None:
+        validators = (
+            core._require_exact_fields,
+            session_initialize._exact,
+            issue_comments._exact,
+            lambda value, allowed, required, location: (
+                strict_validation.require_exact_fields(
+                    value,
+                    allowed,
+                    required,
+                    location,
+                    error_type=core.SchemaError,
+                )
+            ),
+        )
+        for validator in validators:
+            with self.subTest(validator=validator.__module__, case="unknown"):
+                with self.assertRaisesRegex(
+                    core.SchemaError,
+                    r"^inputs contains unknown fields: extra, other$",
+                ):
+                    validator(
+                        {"required": True, "other": True, "extra": True},
+                        {"required"},
+                        {"required"},
+                        "inputs",
+                    )
+            with self.subTest(validator=validator.__module__, case="missing"):
+                with self.assertRaisesRegex(
+                    core.SchemaError,
+                    r"^inputs is missing required fields: first, second$",
+                ):
+                    validator(
+                        {},
+                        {"first", "second"},
+                        {"first", "second"},
+                        "inputs",
+                    )
+
     def test_shared_contract_sets_are_closed(self) -> None:
         self.assertEqual(core.AUTHORIZATION_FIELDS, AUTHORIZATION_FIELDS)
         self.assertEqual(
