@@ -55,23 +55,18 @@ Independent sessions initialize the smallest authoritative development context
 through the
 [governed development-session initialization and interaction standard](docs/GOVERNED-DEVELOPMENT-SESSION-INITIALIZATION.md).
 
-A chatbot may use read-only remote access for orientation. The session standard
-retains the phrase **guarded read-only Python interrogation script** for its
-read-only repository-discovery boundary; current local evidence and all local or
-remote mutations are handled by the governed executor through a uniquely named
-declarative operation file downloaded to `~/Downloads`. The user runs exactly
-one literal command from the repository root:
+A chatbot may use read-only remote access for orientation. Current local
+evidence and every governed local or remote mutation are handled by the governed
+executor through a uniquely named declarative operation file downloaded to
+`~/Downloads`. The user runs exactly one literal command from the repository
+root:
 
 ```sh
 ./scripts/governed-execute ~/Downloads/<unique-operation-name>.operation.json
 ```
 
-The superseded bootstrap transport form is retained only as historical discovery
-evidence:
-
-```sh
-python ~/Downloads/<unique-script-name>.py
-```
+Unsupported operation classes remain blocked; there is no fallback to
+agent-generated mutation scripts.
 
 For a normal clean checkout, a `repository-initialize` operation can derive the
 current branch, exact `HEAD`, local `main`, and canonical `origin/main` state
